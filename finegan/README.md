@@ -2,9 +2,9 @@
   
 [![Paper](http://img.shields.io/badge/paper-arXiv.1811.11155-B3181B.svg)](https://arxiv.org/abs/1811.11155)
 
-This repository is the unofficial implementation of the following paper.
+This repository is the unofficial implementation of the following [[Paper]](https://arxiv.org/abs/1811.11155).
 
-* FineGAN: Unsupervised Hierarchical Disentanglement for Fine-Grained Object Generation and Discovery [Paper](https://arxiv.org/abs/1811.11155)
+* FineGAN: Unsupervised Hierarchical Disentanglement for Fine-Grained Object Generation and Discovery 
 
 ## Description
 
@@ -13,24 +13,35 @@ This repository is the unofficial implementation of the following paper.
 > * Provide brief information of the algorithms used.  
 > * Provide links for demos, blog posts, etc.  
 
-## History
+<!-- ## History
 
-> :memo: Provide a changelog.
+> :memo: Provide a changelog. -->
 
-## Authors or Maintainers
+## Key Features
 
-> :memo: Provide maintainer information.  
+- [x] TensorFlow 2.2.0
+- [ ] Inference example (Colab Demo)
+- [ ] Transfer learning example
+- [ ] Eager mode training with `tf.GradientTape` [If Required]
+- [ ] Graph mode training with `model.train_on_batch`
+- [x] Functional model with `tf.keras.layers`
+- [ ] Input pipeline using `tf.data` and `tfds`
+- [ ] Tensorflow Serving
+- [ ] Vectorized transformations
+- [x] GPU accelerated
+- [ ] Fully integrated with `absl-py` from [abseil.io](https://abseil.io)
+- [ ] Clean implementation
+- [ ] Following the best practices
+- [x] Apache 2.0 License
 
-* Vishal Vinod ([@GitHub username](https://github.com/Vishal-V))
-
-## Table of Contents
-
-> :memo: Provide a table of contents to help readers navigate a lengthy README document.
+![demo](https://raw.githubusercontent.com/zzh8829/yolov3-tf2/master/data/meme_out.jpg)
+![demo](https://raw.githubusercontent.com/zzh8829/yolov3-tf2/master/data/street_out.jpg)
 
 ## Requirements
 
-[![TensorFlow 2.2](https://img.shields.io/badge/tensorflow-2.1-brightgreen)](https://github.com/tensorflow/tensorflow/releases/tag/v2.2.0)
-[![Python 3.7](https://img.shields.io/badge/python-3.6-blue.svg)](https://www.python.org/downloads/release/python-370/)
+[![TensorFlow 2.2](https://img.shields.io/badge/tensorflow-2.2-brightgreen)](https://github.com/tensorflow/tensorflow/releases/tag/v2.2.0)
+[![Python 3.7](https://img.shields.io/badge/python-3.8-blue.svg)](https://www.python.org/downloads/release/python-382/)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Vishal-V/tf-models/blob/master/...)
 
 > :memo: Provide details of the software required.  
 >  
@@ -45,6 +56,11 @@ pip install -r requirements.txt
 ```
 
 ## Results
+[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/finegan-unsupervised-hierarchical/image-generation-on-cub-128-x-128)](https://paperswithcode.com/sota/image-generation-on-cub-128-x-128?p=finegan-unsupervised-hierarchical)
+  
+[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/finegan-unsupervised-hierarchical/image-generation-on-stanford-cars)](https://paperswithcode.com/sota/image-generation-on-stanford-cars?p=finegan-unsupervised-hierarchical)  
+  
+[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/finegan-unsupervised-hierarchical/image-generation-on-stanford-dogs)](https://paperswithcode.com/sota/image-generation-on-stanford-dogs?p=finegan-unsupervised-hierarchical)
 
 > :memo: Provide a table with results. (e.g., accuracy, latency)  
 >  
@@ -94,15 +110,6 @@ python3 ...
 
 > :memo: Provide links to references.  
 
-## License
-
-> :memo: Place your license text in a file named LICENSE in the root of the repository.  
->  
-> * Include information about your license.  
-> * Reference: [Adding a license to a repository](https://help.github.com/en/github/building-a-strong-community/adding-a-license-to-a-repository)  
-
-This project is licensed under the terms of the **Apache License 2.0**.
-
 ## Citation
 
 > :memo: Make your repository citable.  
@@ -110,3 +117,9 @@ This project is licensed under the terms of the **Apache License 2.0**.
 > * Reference: [Making Your Code Citable](https://guides.github.com/activities/citable-code/)  
 
 If you want to cite this repository in your research paper, please use the following information.
+
+## Authors or Maintainers
+
+* Vishal Vinod ([@Vishal-V](https://github.com/Vishal-V))
+  
+This project is licensed under the terms of the **Apache License 2.0**.
