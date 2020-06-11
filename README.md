@@ -12,6 +12,7 @@ A collection of state-of-the-art Deep Learning models for the TensorFlow Model G
   
 The project proposes models such as FineGan, Panoptic Segmentation and several other SoTA models. The TF Model Garden makes building new models with state-of-the-art performance much easier especially with the new additions to TF 2.x that have made every part of the model training pipeline much more efficient (TFRT is out!) The models I have proposed to add will be trained till they converge to the benchmarks in the paper and will have detailed documentation and lucid Colab demos to make them extensible and easy to use.  
 # 
+## **Implementation**
 |Paper|Conference|Library Used|Benchmark|Priority|
 |---|---|---|---|---|
 |[FineGAN](https://arxiv.org/abs/1811.11155)|CVPR ‘19 |Python|[SoTA](https://github.com/kkanshul/finegan/) for CUB 128x128, CUB, Stanford Cars [Image Generation]|High|

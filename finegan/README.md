@@ -8,15 +8,14 @@ This repository is the unofficial implementation of the following [[Paper]](http
 
 ## Description
 
-> :memo: Provide description of the model.  
->  
-> * Provide brief information of the algorithms used.  
-> * Provide links for demos, blog posts, etc.  
-
+FineGAN, a novel unsupervised GAN framework, which disentangles the background, object shape, and object appearance to hierarchically generate images of fine-grained object categories. To disentangle the factors without supervision, the key idea is to use information theory to associate each factor to a latent code, and to condition the relationships between the codes in a specific way to induce the desired hierarchy. Through extensive experiments, FineGAN achieves the desired disentanglement to generate realistic and diverse images belonging to fine-grained classes of birds, dogs, and cars. FineGAN's automatically learned features can also cluster real images as a first attempt at solving the novel problem of unsupervised fine-grained object category discovery.
+  
+<img src="assets/finegan.png" width="1000px" height="393px"/>  
+  
 <!-- ## History
 
 > :memo: Provide a changelog. -->
-
+  
 ## Key Features
 
 - [x] TensorFlow 2.2.0
@@ -33,9 +32,6 @@ This repository is the unofficial implementation of the following [[Paper]](http
 - [ ] Clean implementation
 - [ ] Following the best practices
 - [x] Apache 2.0 License
-
-![demo](https://raw.githubusercontent.com/zzh8829/yolov3-tf2/master/data/meme_out.jpg)
-![demo](https://raw.githubusercontent.com/zzh8829/yolov3-tf2/master/data/street_out.jpg)
 
 ## Requirements
 
