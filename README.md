@@ -1,4 +1,4 @@
-<img src="assets/gsoc_tf.png" width="600px" height="300px"/>
+<img src="assets/gsoc_tf.png" width="622px" height="300px"/>
   
 ## Google Summer of Code 2020 - TensorFlow  
   
@@ -14,14 +14,14 @@ The project proposes models such as FineGan, Panoptic Segmentation and several o
 # 
 |Paper|Conference|Library Used|Benchmark|Priority|
 |---|---|---|---|---|
-|[FineGAN](https://arxiv.org/abs/1811.11155)|CVPR ‘19 |Python|SoTA for CUB 128x128, CUB, Stanford Cars [Image Generation]|High|
-|[Panoptic-FPN](https://arxiv.org/abs/1901.02446)|CVPR ‘19 |Python|Ex-SoTA for COCO Panoptic [Detectron 2 Based Panoptic Segmentation]|High|
+|[FineGAN](https://arxiv.org/abs/1811.11155)|CVPR ‘19 |Python|[SoTA](https://github.com/kkanshul/finegan/) for CUB 128x128, CUB, Stanford Cars [Image Generation]|High|
+|[Panoptic-FPN](https://arxiv.org/abs/1901.02446)|CVPR ‘19 |Python|[Ex-SoTA](https://github.com/facebookresearch/detectron2) for COCO Panoptic [Panoptic Segmentation]|High|
 |[DetectoRS](https://arxiv.org/abs/2006.02334v1)|ArXiv|Python|[SoTA](https://github.com/joe-siyuan-qiao/DetectoRS) for COCO test-dev [Object Detection]|High|  
 #
 ## **Progress**
 |Evaluation|Task|Link|Status|Pull Request|
 |---|---|---|---|---|
 |E1| FineGan Implementation |[Here](https://github.com/Vishal-V/tf-models/tree/master/finegan)| WIP ||
-|E2| Mask R-CNN |[Here](https://github.com/Vishal-V/tf-models/)|WIP|[ #78](https://github.com/tensorflow/examples/pull/78)|
+|E2| Detectron 2 |[Here](https://github.com/Vishal-V/tf-models/)|WIP|[ #78](https://github.com/tensorflow/examples/pull/78)|
 |E2| Panoptic Segmentation |[Here](https://github.com/Vishal-V/tf-models/)|Research||
 #

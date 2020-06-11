@@ -20,9 +20,9 @@ from __future__ import division
 from __future__ import print_function
 
 import os
+import time
 import pickle
 import random
-import time
 
 import numpy as np
 import pandas as pd
@@ -30,6 +30,7 @@ import tensorflow as tf
 
 assert tf.version.VERSION.startswith('2.2')
 
+from config.config import Config
 from tensorflow.keras import Input, Model, Sequential
 from tensorflow.keras.layers import LeakyReLU, BatchNormalization, ReLU, Activation
 from tensorflow.keras.layers import UpSampling2D, Conv2D, Concatenate, Dense, concatenate
@@ -65,21 +66,64 @@ def conv3x3(filters=16):
 
 class UpSampleBlock(tf.keras.layers.Layer):
     def __init__(self, filters=16, **kwargs):
-        # Decide on the args for this block 
         super(UpSampleBlock, self).__init__(**kwargs)
         self.filters = filters
         
-        @tf.function
-        def call(self, inputs):
-            x = UpSampling2D(size=2, interpolation="nearest")(inputs)
-            x = conv3x3(self.filters * 2)(x)
-            x = BatchNormalization()(x)
-            return  GLU()(x)
+    @tf.function
+    def call(self, inputs):
+        x = UpSampling2D(size=2, interpolation="nearest")(inputs)
+        x = conv3x3(self.filters * 2)(x)
+        x = BatchNormalization()(x)
+        return  GLU()(x)
+
 
 class KeepDimsBlock(tf.keras.layers.Layer):
-    def __init__(self, **kwargs):
+    def __init__(self, filters=16, **kwargs):
         super(KeepDimsBlock, self).__init__(**kwargs)
+        self.filters = filters
 
     @tf.function
     def call(self, inputs):
+        x = conv3x3(self.filters)(inputs)
+        BatchNormalization()(x)
+        return GLU()(x)
+
+
+class ResidualBlock(tf.keras.layers.Layer):
+    def __init__(self, channels=0, **kwargs):
+        super(ResidualBlock, self).__init__(**kwargs)
+        self.channels = channels
+
+    @tf.function
+    def call(self, inputs):
+        residual = inputs
+        x = conv3x3(self.channels * 2)(inputs)
+        x = BatchNormalization()(x)
+        x = GLU()(x)
+        x = conv3x3(self.channels)
+        x = BatchNormalization()(x)
+        return tf.keras.layers.Add()([x, residual])
+
+
+class InitGenerator(tf.keras.Model):
+    def __init__(self, cfg, gen_dims, condition_flag, **kwargs):
+        super(InitGenerator, self).__init__(**kwargs)
+        self.gf_dim = gen_dims
+        self.condition_flag = condition_flag
+        if self.condition_flag==1 :
+            self.input_dims = cfg.GAN['Z_DIM'] + cfg.SUPER_CATEGORIES
+        elif self.condition_flag==2:
+            self.input_dims = cfg.GAN['Z_DIM'] + cfg.FINE_GRAINED_CATEGORIES 
+
+    def call(self, inputs):
         pass
+
+class CustomConfig(Config):
+    def __init__(self, batch_size=16, **kwargs):
+        super(CustomConfig, self).__init__(batch_size)
+
+if __name__== '__main__':
+    print(type(Config))
+    current_config = CustomConfig(16)
+    temp_g = InitGenerator(cfg=current_config, gen_dims=current_config.GAN, condition_flag=1)
+
