@@ -50,8 +50,8 @@ class Config(object):
         'R_NUM': 2
     }
 
-    def __init__(self):
-        self.BATCH_SIZE = 16
+    def __init__(self, batch_size=16):
+        self.BATCH_SIZE = batch_size
 
     def display(self):
         """Display Configuration values."""
