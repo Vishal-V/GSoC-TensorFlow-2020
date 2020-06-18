@@ -1,6 +1,7 @@
 # finegan  
   
-[![Paper](http://img.shields.io/badge/paper-arXiv.1811.11155-B3181B.svg)](https://arxiv.org/abs/1811.11155)
+[![Paper](http://img.shields.io/badge/paper-arXiv.1811.11155-B3181B.svg)](https://arxiv.org/abs/1811.11155) 
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Vishal-V/tf-models/blob/master/...)  
 
 This repository is the unofficial implementation of the following [[Paper]](https://arxiv.org/abs/1811.11155).
 
@@ -10,7 +11,7 @@ This repository is the unofficial implementation of the following [[Paper]](http
 
 FineGAN, a novel unsupervised GAN framework, which disentangles the background, object shape, and object appearance to hierarchically generate images of fine-grained object categories. To disentangle the factors without supervision, the key idea is to use information theory to associate each factor to a latent code, and to condition the relationships between the codes in a specific way to induce the desired hierarchy. Through extensive experiments, FineGAN achieves the desired disentanglement to generate realistic and diverse images belonging to fine-grained classes of birds, dogs, and cars. FineGAN's automatically learned features can also cluster real images as a first attempt at solving the novel problem of unsupervised fine-grained object category discovery.
   
-<img src="assets/finegan.png" width="1000px" height="393px"/>  
+<img src="../assets/finegan.png" width="960px" height="377px"/>  
   
 <!-- ## History
 
@@ -37,7 +38,6 @@ FineGAN, a novel unsupervised GAN framework, which disentangles the background, 
 
 [![TensorFlow 2.2](https://img.shields.io/badge/tensorflow-2.2-brightgreen)](https://github.com/tensorflow/tensorflow/releases/tag/v2.2.0)
 [![Python 3.7](https://img.shields.io/badge/python-3.8-blue.svg)](https://www.python.org/downloads/release/python-382/)
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Vishal-V/tf-models/blob/master/...)
 
 > :memo: Provide details of the software required.  
 >  

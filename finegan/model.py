@@ -90,7 +90,7 @@ class KeepDimsBlock(tf.keras.layers.Layer):
 
 
 class ResidualBlock(tf.keras.layers.Layer):
-    def __init__(self, channels=0, **kwargs):
+    def __init__(self, channels=16, **kwargs):
         super(ResidualBlock, self).__init__(**kwargs)
         self.channels = channels
 
@@ -110,20 +110,68 @@ class InitGenerator(tf.keras.Model):
         super(InitGenerator, self).__init__(**kwargs)
         self.gf_dim = gen_dims
         self.condition_flag = condition_flag
+
         if self.condition_flag==1 :
             self.input_dims = cfg.GAN['Z_DIM'] + cfg.SUPER_CATEGORIES
         elif self.condition_flag==2:
             self.input_dims = cfg.GAN['Z_DIM'] + cfg.FINE_GRAINED_CATEGORIES 
 
+        self.layer1 = UpSampleBlock(self.gf_dim // 2)
+        self.layer2 = UpSampleBlock(self.gf_dim // 4)
+        self.layer3 = UpSampleBlock(self.gf_dim // 8)
+        self.layer4 = UpSampleBlock(self.gf_dim // 16)
+        self.layer5 = UpSampleBlock(self.gf_dim // 16)
+
     def call(self, inputs):
+        # self.code = Concatenate()([z_code, code])
+        # make sure the z_code and code are the input
+        x = Dense(self.gf_dim*4*4*2, use_bias=False)(inputs)
+        x = BatchNormalization()(x)
+        x = GLU()(x)
+        x = Reshape((-1, self.gf_dim, 4, 4))(x)
+        x = self.layer1(x)
+        x = self.layer2(x)
+        x = self.layer3(x)
+        x = self.layer4(x)
+        return self.layer5(x)
+
+
+class IntermediateGenerator(tf.keras.Model):
+    def __init__(self, cfg, gen_dims, hrc=1, num_residual=2, **kwargs):
+        super(IntermediateGenerator, self).__init__(**kwargs)
+        self.gf_dim = gen_dims
+        self.res = num_residual
+        if hrc == 1:
+            self.ef_dim = cfg.SUPER_CATEGORIES
+        else:
+            self.ef_dim = cfg.FINE_GRAINED_CATEGORIES
+
+        self.convblock = Sequential([
+            conv3x3(self.gf_dim*2),
+            BatchNormalization(self.gf_dim // 2),
+            GLU()
+        ])
+
+        self.residual = self._make_layer(ResidualBlock, self.gf_dim)
+        self.keepdims = KeepDimsBlock()
+
+    def _make_layer(self, block, channel_num):
+        layers = []
+        for i in range(self.num_residual):
+            layers.append(block(channel_num))
+        return nn.Sequential(*layers)
+
+    def call(self, inputs):
+        # Make sure h_code and code are the input      
         pass
+    
 
 class CustomConfig(Config):
     def __init__(self, batch_size=16, **kwargs):
         super(CustomConfig, self).__init__(batch_size)
 
 if __name__== '__main__':
-    print(type(Config))
-    current_config = CustomConfig(16)
-    temp_g = InitGenerator(cfg=current_config, gen_dims=current_config.GAN, condition_flag=1)
+    cfg = CustomConfig(16)
+    temp_g = InitGenerator(cfg=cfg, gen_dims=cfg.GAN, condition_flag=1)
+    temp_interim_g = IntermediateGenerator(cfg=cfg)
 
