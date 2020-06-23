@@ -84,7 +84,7 @@ class KeepDimsBlock(tf.keras.layers.Layer):
 
     @tf.function
     def call(self, inputs):
-        x = conv3x3(self.filters)(inputs)
+        x = conv3x3(self.filters*2)(inputs)
         BatchNormalization()(x)
         return GLU()(x)
 
@@ -123,8 +123,8 @@ class InitGenerator(tf.keras.Model):
         self.layer5 = UpSampleBlock(self.gf_dim // 16)
 
     def call(self, inputs):
-        # self.code = Concatenate()([z_code, code])
         # make sure the z_code and code are the input
+        # self.code = Concatenate()([z_code, code])
         x = Dense(self.gf_dim*4*4*2, use_bias=False)(inputs)
         x = BatchNormalization()(x)
         x = GLU()(x)
@@ -153,18 +153,66 @@ class IntermediateGenerator(tf.keras.Model):
         ])
 
         self.residual = self._make_layer(ResidualBlock, self.gf_dim)
-        self.keepdims = KeepDimsBlock()
+        self.keepdims = KeepDimsBlock(self.gf_dim // 2)
 
     def _make_layer(self, block, channel_num):
         layers = []
-        for i in range(self.num_residual):
+        for _ in range(self.res):
             layers.append(block(channel_num))
-        return nn.Sequential(*layers)
+        return Sequential(*layers)
 
     def call(self, inputs):
-        # Make sure h_code and code are the input      
-        pass
+        # Make sure h_code and code are the input
+        # s_size = h_code.shape[2]
+        # code = tf.reshape(-1, self.ef_dim, 1, 1)
+        # code = tf.repeat(1, 1, s_size, s_size)
+        # h_c_code = Concatenate([code, h_code], axis=1)   
+        x = self.convblock(inputs)
+        x = self.residual(x)
+        return self.keepdims(x)
+
+
+class GetImage(tf.keras.Model):
+    def __init__(self, gen_dims, **kwargs):
+        super(GetImage, self).__init__(**kwargs)
+        self.out_image = Sequential([
+            conv3x3(3),
+            Activation('tanh')
+        ])
+
+    def call(self, inputs):
+        # The inputs need to be h_code
+        return self.out_image(inputs)
+
+
+class GetMask(tf.keras.Model):
+    def __init__(self, gen_dims, **kwargs):
+        super(GetMask, self).__init__(**kwargs)
+        self.out_mask = Sequential([
+            conv3x3(1),
+            Activation('sigmoid')
+        ])
+
+    def call(self, inputs):
+        return self.out_mask(inputs)
+
     
+class Generator(tf.keras.Model):
+    def __init__(self, cfg, **kwargs):
+        super(Generator, self).__init__(**kwargs)
+        self.gf_dim = cfg.GAN['GF_DIM']
+        self.upsampling = UpSampling2D(size=2, interpolation='bilinear')
+        self.scale_foreground = UpSampling2D(size=2, interpolation='bilinear') # Needs to be of size [126, 126]
+
+        # Background Stage
+
+        # Parent Stage
+
+        # Child Stage
+
+    def call(self, inputs):
+        pass
+
 
 class CustomConfig(Config):
     def __init__(self, batch_size=16, **kwargs):
