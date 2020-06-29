@@ -22,7 +22,7 @@ The project proposes models such as FineGan, Panoptic Segmentation and several o
 ## **Progress**
 |Evaluation|Task|Link|Status|Pull Request|
 |---|---|---|---|---|
-|E1| FineGan Implementation |[Here](https://github.com/Vishal-V/tf-models/tree/master/finegan)| WIP ||
+|E1| FineGan Implementation |[Here](https://github.com/Vishal-V/tf-models/tree/master/finegan)| WIP |[ #8750](https://github.com/tensorflow/models/pull/8750)|
 |E2| Detectron 2 |[Here](https://github.com/Vishal-V/tf-models/)|WIP|[ #78](https://github.com/tensorflow/examples/pull/78)|
 |E2| Panoptic Segmentation |[Here](https://github.com/Vishal-V/tf-models/)|Research||
 #
