@@ -30,7 +30,6 @@ import tensorflow as tf
 
 assert tf.version.VERSION.startswith('2.')
 
-from config.config import Config
 from tensorflow.keras import Input, Model, Sequential
 from tensorflow.keras.layers import LeakyReLU, BatchNormalization, ReLU, Activation, LeakyReLU
 from tensorflow.keras.layers import UpSampling2D, Conv2D, Concatenate, Dense, concatenate
@@ -376,14 +375,4 @@ class DiscriminatorArchitecture(tf.keras.Model):
             p_c = self.logits_pc(x) # Information maximising code (D_pinfo or D_cinfo)
             real_fake_child = self.logits_pc1(x) # Real/Fake classification - child (D_adv)
             return [tf.reshape(p_c, [-1, self.encoder_dims]), tf.reshape(real_fake_child, [-1])]
-
-
-class CustomConfig(Config):
-    def __init__(self, batch_size=16, **kwargs):
-        super(CustomConfig, self).__init__(batch_size)
-
-if __name__== '__main__':
-    cfg = CustomConfig(16)
-    temp_g = InitGenerator(cfg=cfg, gen_dims=cfg.GAN, condition_flag=1)
-    temp_interim_g = IntermediateGenerator(cfg=cfg)
 
