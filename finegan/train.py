@@ -29,9 +29,25 @@ from .config.config import Config
 
 AUTOTUNE = tf.data.experimental.AUTOTUNE
 
-def save_images():
-    # TODO: Save images to the folder
-    pass
+def save_images(imgs_tcpu, fake_imgs, epoch):
+
+    num = cfg.TRAIN['VIS_COUNT']
+    real_img = imgs_tcpu[-1][0:num]
+
+    image = plt.figure()
+    ax = image.add_subplot(1,1,1)
+    ax.imshow(real_img[0])
+    ax.axis("off")
+    plt.savefig(f'test/{epoch}_real_sample.png')
+
+    for i in range(len(fake_imgs)):
+        fake_img = fake_imgs[i][0:num]
+
+        image = plt.figure()
+        ax = image.add_subplot(1,1,1)
+        ax.imshow(fake_img)
+        ax.axis("off")
+        plt.savefig(f'test/{epoch}_fake_sample_{i}.png')
 
 def load_finegan_network():
     # TODO: Load the FineGAN network
@@ -45,13 +61,13 @@ def define_optimizers(gen, disc):
 
 class FineGAN(object):
     """The FineGAN Architecture"""
-    def __init__(self, cfg, out_path, img_path, dataset, **kwargs):
+    def __init__(self, cfg, img_path, dataset, **kwargs):
         super(FineGAN, self).__init__(**kwargs)
         self.batch_size = cfg.TRAIN['BATCH_SIZE']
         self.num_epochs = cfg.TRAIN['MAX_EPOCH']
         self.dataset = dataset
         self.num_batches = len(dataset)
-        self.summary_writer = tf.summary.create_file_writer('./logs')
+        # self.summary_writer = tf.summary.create_file_writer('./logs')
 
         # TODO: Define in the train step
         self.discriminators = []
@@ -102,7 +118,7 @@ class FineGAN(object):
     @tf.function
     def train_generator(self):
         generator_error = 0.0
-        loss1, class_loss, child_code, parent_code = self.loss1, self.class_loss, self.child_code, self.parent_code
+        loss1, class_loss, c_code, parent_code = self.loss1, self.class_loss, self.c_code, self.parent_code
 
         with tf.GradientTape() as tape:
             for i in range(self.num_disc):
@@ -127,7 +143,7 @@ class FineGAN(object):
                 elif i==2:
                     # Information maximizing loss for child stage
                     child_prediction = self.discriminators[2](self.foreground_masks[i-1])
-                    gen_info_loss = class_loss(child_prediction[0], tf.where(child_code)[:, 1])
+                    gen_info_loss = class_loss(child_prediction[0], tf.where(c_code)[:, 1])
 
                 if i>0:
                     generator_error += gen_info_loss
@@ -142,7 +158,7 @@ class FineGAN(object):
         return generator_error
 
     @tf.function
-    def train_discriminator(self, stage, count):
+    def train_discriminator(self, stage, count=0):
         if stage==0 or stage==2:
 
             with tf.GradientTape() as tape:
@@ -158,7 +174,7 @@ class FineGAN(object):
                     real_images = self.real_cimages[0]
 
                 fake_images = self.fake_images[stage]
-                real_logits = disc_network(real_images) # Labels?
+                real_logits = disc_network(real_images)
 
                 if stage==2:
                     fake_labels = tf.zeros_like(real_logits[1])
@@ -175,11 +191,16 @@ class FineGAN(object):
                         y1 =  self.bbox[1][i]
                         y2 =  self.bbox[3][i]
 
-                        """All the patches in NxN from a1:a2 (along rows) and b1:b2 (along columns) will be masked, and loss will only be computed from remaining members in NxN"""
-                        a1 = tf.math.maximum(tf.Variable(0.0), tf.math.ceil((x1 - self.receptive_field)/(self.patch_stride)))
-                        a2 = tf.math.minimum(tf.Variable(tf.cast(self.num_out-1, tf.float32)), tf.math.floor((self.num_out-1) - ((126 - self.receptive_field) - x2)/(self.patch_stride))) + 1
-                        b1 = tf.math.maximum(tf.Variable(0.0), tf.math.ceil((y1 - self.receptive_field)/self.patch_stride))
-                        b2 = tf.math.minimum(tf.Variable(tf.cast(self.num_out-1, tf.float32)), tf.math.floor((self.num_out-1) - ((126 - self.receptive_field) - y2)/(self.patch_stride))) + 1
+                        """All the patches in NxN from a1:a2 (along rows) and b1:b2 (along columns) will be masked, 
+                        and loss will only be computed from remaining members in NxN"""
+                        a1 = tf.math.maximum(tf.Variable(0.0), 
+                                tf.math.ceil((x1 - self.receptive_field)/(self.patch_stride)))
+                        a2 = tf.math.minimum(tf.Variable(tf.cast(self.num_out-1, tf.float32)), 
+                                tf.math.floor((self.num_out-1) - ((126 - self.receptive_field) - x2)/(self.patch_stride))) + 1
+                        b1 = tf.math.maximum(tf.Variable(0.0), 
+                                tf.math.ceil((y1 - self.receptive_field)/self.patch_stride))
+                        b2 = tf.math.minimum(tf.Variable(tf.cast(self.num_out-1, tf.float32)), 
+                                tf.math.floor((self.num_out-1) - ((126 - self.receptive_field) - y2)/(self.patch_stride))) + 1
 
                         if x1 != x2 and y1 != y2:
                             real_weights[i, a1:a2, b1:b2, :] = 0.0
@@ -218,10 +239,7 @@ class FineGAN(object):
 
     @tf.function
     def train(self):
-        # TODO: Train the entire FineGAN
-        # TODO: Only for Background and Child phases
-
-        # TODO: Define in appropriate locations
+        
         self.patch_stride = 4.0 # Receptive field stride for Backround Stage Discriminator 
         self.num_out = 24 # Patch output size in NxN
         self.receptive_field = 34 # Receptive field of every patch in NxN
@@ -240,8 +258,9 @@ class FineGAN(object):
         self.fake_labels = tf.Variable(tf.zeros_like(self.batch_size, dtype=tf.float32))
 
         z_dims = cfg.GAN['Z_DIM']
-        latent_noise = tf.Variable(tf.random.normal(shape=(self.batch_size, z_dims)))
-        fixed_noise = tf.Variable(tf.random.normal(shape=(self.batch_size, z_dims)))
+        noise = tf.Variable(tf.random.normal(shape=(self.batch_size, z_dims)))
+        # latent_noise = tf.Variable(tf.random.normal(shape=(self.batch_size, z_dims)))
+        # fixed_noise = tf.Variable(tf.random.normal(shape=(self.batch_size, z_dims)))
         # hard_noise = tf.Variable(tf.random.normal(shape=(self.batch_size, z_dims)))
 
         print(f'[INFO] Starting FineGAN Training...')
@@ -249,20 +268,25 @@ class FineGAN(object):
         for epoch in range(start_epoch, self.num_epochs):
             start_time = time.time()
 
-            for step, data in enumerate(self.dataset):
-                self.imgs_tcpu, self.real_fimages, self.real_cimages, self.child_code, self.bbox = self.prepare_data(data)
+            for _, data in enumerate(self.dataset):
+                self.imgs_tcpu, self.real_fimages, self.real_cimages, self.c_code, self.bbox = self.prepare_data(data)
 
-                # TODO: Feedforward through Generator. Obtain stagewise fake images
+                self.fake_images, self.foreground_images, self.mask_images, self.foreground_masks = self.generator(noise, self.c_code)
 
+                self.parent_code = child_to_parent(self.c_code, cfg.FINE_GRAINED_CATEGORIES, cfg.SUPER_CATEGORIES) 
 
-                # TODO: Obtain the parent code given the child code
+                total_discriminator_error = 0.0
+                for index in range(self.num_disc):
+                    if index==0 or index==2:
+                        discriminator_error = self.train_discriminator(index)
+                        total_discriminator_error += discriminator_error
 
+                total_generator_error = self.train_generator()
+                # TODO: 0.999 * avg_weights + 0.1 * actual_weights ---> Stable model
+                print(f'[INFO] FineGAN Gen Error: {total_generator_error}. Disc Error: {total_discriminator_error}')
 
-                # TODO: Update Discriminator networks
-
-
-                # TODO: Update the Generator networks
-
+            end_time = time.time()
+            print(f'[INFO] Epoch: {epoch}/{self.num_epochs} took {(end_time-start_time):.2}s.') 
 
         print(f'[INFO] Saving model after {self.num_epochs} epochs')
         # TODO: save the model
@@ -273,4 +297,12 @@ class FineGAN(object):
 
 if __name__ == '__main__':
     cfg = Config(32)
-    gen = GeneratorArchitecture(cfg, '', '')
+    print(f'[INFO] Initialize FineGAN...')
+    algo = FineGAN(output_dir, dataloader, imsize)
+    print(f'[INFO] FineGAN Initialization Complete...')
+    print(f'[INFO] FineGAN Training starts...')
+    start_t = time.time()
+    algo.train()
+    end_t = time.time()
+    print(f'Total time for training: {end_t - start_t}')
+    print(f'[INFO] FineGAN Training Complete...')
