@@ -29,14 +29,13 @@ import matplotlib.pyplot as plt
 import tensorflow as tf
 assert tf.version.VERSION.startswith('2.')
 
-from .model import GeneratorArchitecture, DiscriminatorArchitecture
-from .model import child_to_parent
-from .config.config import Config
+from model import GeneratorArchitecture, DiscriminatorArchitecture
+from model import child_to_parent
+from config.config import Config
 
 AUTOTUNE = tf.data.experimental.AUTOTUNE
 
 def save_images(imgs_tcpu, fake_imgs, epoch):
-
     num = cfg.TRAIN['VIS_COUNT']
     real_img = imgs_tcpu[-1][0:num]
 
@@ -55,9 +54,11 @@ def save_images(imgs_tcpu, fake_imgs, epoch):
         ax.axis("off")
         plt.savefig(f'test/{epoch}_fake_sample_{i}.png')
 
+
 def normalize(input_image):
     input_image = (input_image / 127.5) - 1
     return input_image
+
 
 def load_class_ids_filenames(class_id_path, filename_path):
     with open(class_id_path, 'rb') as file:
@@ -67,6 +68,7 @@ def load_class_ids_filenames(class_id_path, filename_path):
         filename = pickle.load(file, encoding='latin1')
 
     return class_id, filename
+
 
 def load_bbox(data_path='../../CUB data/CUB_200_2011'):
     bbox_path = data_path + '/bounding_boxes.txt'
@@ -84,6 +86,7 @@ def load_bbox(data_path='../../CUB data/CUB_200_2011'):
         bbox_dict[dict_key] = bbox
 
     return bbox_dict
+
 
 def load_images(image_path, bounding_box, size):
     """Crops the image to the bounding box and then resizes it.
@@ -118,13 +121,17 @@ def load_images(image_path, bounding_box, size):
     retc.append(re_cimg)
     
     # TODO: Random Crop + Flip and Modify bbox accordingly
+    
     # re_fimg = tf.image.resize(fimg, size=(126*76/64))
     # re_width, re_height = re_fimg.size
+    
     # TODO: Normalize before append
+    
     fimg = fimg.resize([126, 126])
     retf.append(fimg)
 
     return fimg, re_cimg, bounding_box
+
 
 def load_data(filename_path, class_id_path, dataset_path, size):
     """Loads the Dataset.
@@ -162,14 +169,41 @@ def load_data(filename_path, class_id_path, dataset_path, size):
 
     return (fimgs_list, cimgs_list, child_code_list, key_list, mod_bbox_list)
 
-def load_finegan_network():
-    # TODO: Load the FineGAN network
-    start_epoch = 0
-    return GeneratorArchitecture(), [DiscriminatorArchitecture() for i in range(2)], len(list(range(2))), start_epoch
 
-def define_optimizers(gen, disc):
-    # TODO: Define the appropriate optimizers to be used
-    return tf.keras.optimizers.Adam(), tf.keras.optimizers.Adam()
+def load_finegan_network(cfg):
+    generator = GeneratorArchitecture(cfg)
+    print(f'[INFO] Initialized Generator...')
+    
+    discriminators = []
+    for i in range(3): # 3 discriminators for background, parent and child stage
+        discriminators.append(DiscriminatorArchitecture(cfg, i))
+    print(f'[INFO] Initialized Discriminators...')
+        
+    start_epoch = 0
+
+    # TODO: Load the weights for gen and discs and extract the end epoch
+    
+    return generator, discriminators, len(discriminators), start_epoch
+
+
+def define_optimizers(gen, disc):   
+    optimizers_disc = []
+    num_disc = len(disc)
+    
+    for i in range(num_disc):      
+        opt = tf.keras.optimizers.Adam(learning_rate=cfg.TRAIN['DISCRIMINATOR_LR'], beta_1=0.5, beta_2=0.999)
+        optimizers_disc.append(opt)
+
+    optimizers_gen = []
+    optimizers_gen.append(tf.keras.optimizers.Adam(learning_rate=cfg.TRAIN['GENERATOR_LR'], beta_1=0.5, beta_2=0.999))
+
+    for i in range(num_disc):
+        if i==1:   
+                optimizers_gen.append(tf.keras.optimizers.Adam(learning_rate=cfg.TRAIN['GENERATOR_LR'], beta_1=0.5, beta_2=0.999))
+        elif i==2:
+                optimizers_gen.append(tf.keras.optimizers.Adam(learning_rate=cfg.TRAIN['GENERATOR_LR'], beta_1=0.5, beta_2=0.999))
+
+    return optimizers_gen, optimizers_disc
 
 
 class FineGAN(object):
@@ -183,17 +217,9 @@ class FineGAN(object):
         # self.summary_writer = tf.summary.create_file_writer('./logs')
 
         # TODO: Define in the train step
-        self.discriminators = []
-        self.generator = GeneratorArchitecture()
-
-        self.optimizer_gen_list = []
-        self.optimizer_disc_list = []
-
         self.foreground_masks = []
         self.fake_images = []
-        self.num_disc = 2
         self.parent_code = None
-
 
     # def prepare_dataset(self, batch_size=64):
     #     data_dir = self.data_dir
@@ -213,8 +239,8 @@ class FineGAN(object):
             plt.imshow(image)
             plt.axis("off")
 
-    def prepare_data(self, data):
-        foreground_img, c_img, conditioning_code, _, bbox = data
+    def prepare_data(self, fimages, cimages, child_codes, keys, bboxes):
+        foreground_img, c_img, conditioning_code, _, bbox = fimages, cimages, child_codes, keys, bboxes
         real_vfimages, real_vcimages = [], []
         vc_code = tf.Variable(conditioning_code)
         for i in range(len(bbox)):
@@ -358,9 +384,10 @@ class FineGAN(object):
         self.num_out = 24 # Patch output size in NxN
         self.receptive_field = 34 # Receptive field of every patch in NxN
 
-        self.generator, self.discriminators, self.num_disc, start_epoch = load_finegan_network()
+        self.generator, self.discriminators, self.num_disc, start_epoch = load_finegan_network(cfg)
+        
         # TODO: Deepcopy the weights for generator?
-        # Deepcopy here:
+        # Deepcopy here; (for stabilliz the weights ---> StackGAN)
 
         self.optimizer_gen_list, self.optimizer_disc_list = define_optimizers(self.generator, self.discriminators)
 
@@ -373,17 +400,33 @@ class FineGAN(object):
 
         z_dims = cfg.GAN['Z_DIM']
         noise = tf.Variable(tf.random.normal(shape=(self.batch_size, z_dims)))
+        
         # latent_noise = tf.Variable(tf.random.normal(shape=(self.batch_size, z_dims)))
         # fixed_noise = tf.Variable(tf.random.normal(shape=(self.batch_size, z_dims)))
         # hard_noise = tf.Variable(tf.random.normal(shape=(self.batch_size, z_dims)))
+        
+        self.num_batches = int(train_dataset[0].shape[0] / self.batch_size)
+        fimgs_list, cimgs_list, child_code_list, key_list, mod_bbox_list = self.train_dataset
 
         print(f'[INFO] Starting FineGAN Training...')
-
+        start_epoch = 0
+        self.num_epochs = 1
         for epoch in range(start_epoch, self.num_epochs):
+            print(f'[Train] FineGAN Epoch: {epoch+1}/{self.num_epochs}')
             start_time = time.time()
-
-            for _, data in enumerate(self.train_dataset):
-                self.imgs_tcpu, self.real_fimages, self.real_cimages, self.c_code, self.bbox = self.prepare_data(data)
+            
+            for i in range(self.num_batches):
+                if i%10 == 0:
+                    print(f'[INFO] Loaded Batch {i+1}/{self.num_batches}')
+                    
+                fimgs_batch = fimgs_list[i * self.batch_size:(i+1) * self.batch_size]
+                cimgs_batch = cimgs_list[i * self.batch_size:(i+1) * self.batch_size]
+                child_code_batch = child_code_list[i * self.batch_size:(i+1) * self.batch_size]
+                keys_batch = key_list[i * self.batch_size:(i+1) * self.batch_size]
+                mod_box_batch = mod_bbox_list[i * self.batch_size:(i+1) * self.batch_size]
+                
+                self.imgs_tcpu, self.real_fimages, self.real_cimages, self.c_code, self.bbox = \
+                                        self.prepare_data(fimgs_batch, cimgs_batch, child_code_batch, keys_batch, mod_box_batch)
 
                 self.fake_images, self.foreground_images, self.mask_images, self.foreground_masks = self.generator(noise, self.c_code)
 
