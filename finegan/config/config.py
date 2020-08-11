@@ -34,7 +34,7 @@ class Config(object):
 
     TRAIN = {
         'FLAG': True,
-        'BATCH_SIZE': 64,
+        'BATCH_SIZE': 16,
         'MAX_EPOCH': 600,
         'HARDNEG_MAX_ITER': 1500,
         'SNAPSHOT_INTERVAL': 4000,

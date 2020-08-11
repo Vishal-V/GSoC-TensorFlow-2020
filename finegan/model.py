@@ -33,34 +33,9 @@ assert tf.version.VERSION.startswith('2.')
 from tensorflow.keras import Input, Model, Sequential
 from tensorflow.keras.layers import LeakyReLU, BatchNormalization, ReLU, Activation, LeakyReLU
 from tensorflow.keras.layers import UpSampling2D, Conv2D, Concatenate, Dense, concatenate
-from tensorflow.keras.layers import Flatten, Lambda, Reshape, ZeroPadding2D, add, dot
+from tensorflow.keras.layers import Flatten, Lambda, Reshape, ZeroPadding2D, add, dot, ELU
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
-
-
-class GLU(tf.keras.layers.Layer):
-    def __init__(self, **kwargs):
-        super(GLU, self).__init__(**kwargs)
-
-    def call(self, x):
-        num_channels = x.shape[-1]
-        assert num_channels % 2 == 0, "Channels don't divide by 2"
-        num_channels /= 2
-        return x[:, :, :, :num_channels] * Activation('sigmoid')(x[:, :, :, num_channels:])
-
-
-def child_to_parent(child_code, child_classes, parent_classes):
-    """Returns the parent conditional code"""
-    ratio = child_classes/parent_classes
-    arg_parent = tf.math.argmax(child_code, axis=1)/ratio
-    parent_code = tf.zeros([child_code.shape[0], parent_classes])
-    for i in range(child_code.shape[0]):
-        parent_code[i][arg_parent[i]] = 1
-    return parent_code
-
-def conv3x3(filters=16):
-    return Conv2D(filters=filters, kernel_size=3, strides=1, kernel_initializer="he_normal", 
-            use_bias=False)
 
 
 class ParentChildEncoder(tf.keras.layers.Layer):
@@ -68,22 +43,30 @@ class ParentChildEncoder(tf.keras.layers.Layer):
     def __init__(self, num_disc_features, **kwargs):
         super(ParentChildEncoder, self).__init__(**kwargs)
         self.num_disc_features = num_disc_features
+        
+        self.conv1 = Conv2D(self.num_disc_features, 4, 2, use_bias=False)
+        self.conv2 = Conv2D(self.num_disc_features*2, 4, 2, use_bias=False)
+        self.batchnorm1 = BatchNormalization()
+        self.conv3 = Conv2D(self.num_disc_features*4, 4, 2, use_bias=False)
+        self.batchnorm2 = BatchNormalization()
+        self.conv4 = Conv2D(self.num_disc_features*8, 4, 2, use_bias=False)
+        self.batchnorm3 = BatchNormalization()
 
     def call(self, inputs):
         x = ZeroPadding2D(1)(inputs)
-        x = Conv2D(self.num_disc_features, 4, 2, use_bias=False)(x)
+        x = self.conv1(x)
         x = LeakyReLU(alpha=0.2)(x)
         x = ZeroPadding2D(1)(x)
-        x = Conv2D(self.num_disc_features*2, 4, 2, use_bias=False)(x)
-        x = BatchNormalization()(x)
+        x = self.conv2(x)
+        x = self.batchnorm1(x)
         x = LeakyReLU(alpha=0.2)(x)
         x = ZeroPadding2D(1)(x)
-        x = Conv2D(self.num_disc_features*4, 4, 2, use_bias=False)(x)
-        x = BatchNormalization()(x)
+        x = self.conv3(x)
+        x = self.batchnorm2(x)
         x = LeakyReLU(alpha=0.2)(x)
         x = ZeroPadding2D(1)(x)
-        x = Conv2D(self.num_disc_features*8, 4, 2, use_bias=False)(x)
-        x = BatchNormalization()(x)
+        x = self.conv4(x)
+        x = self.batchnorm3(x)
         return LeakyReLU(alpha=0.2)(x)
 
 
@@ -92,13 +75,17 @@ class BackgroundEncoder(tf.keras.layers.Layer):
     def __init__(self, num_disc_features, **kwargs):
         super(BackgroundEncoder, self).__init__(**kwargs)
         self.num_disc_features = num_disc_features
-
+        
+        self.conv1 = Conv2D(self.num_disc_features, 4, 2, use_bias=False)
+        self.conv2 = Conv2D(self.num_disc_features*2, 4, 2, use_bias=False)
+        self.conv3 = Conv2D(self.num_disc_features*4, 4, 1, use_bias=False)
+    
     def call(self, inputs):
-        x = Conv2D(self.num_disc_features, 4, 2, use_bias=False)(inputs)
+        x = self.conv1(inputs)
         x = LeakyReLU(alpha=0.2)(x)
-        x = Conv2D(self.num_disc_features*2, 4, 2, use_bias=False)(x)
+        x = self.conv2(x)
         x = LeakyReLU(alpha=0.2)(x)
-        x = Conv2D(self.num_disc_features*4, 4, 1, use_bias=False)(x)
+        x = self.conv3(x)
         return LeakyReLU(alpha=0.2)(x)
 
 
@@ -107,23 +94,29 @@ class UpSampleBlock(tf.keras.layers.Layer):
         super(UpSampleBlock, self).__init__(**kwargs)
         self.filters = filters
         
-    @tf.function
+        self.upsample1 = UpSampling2D(size=2, interpolation="nearest")
+        self.conv1 = Conv2D(self.filters*2, 3, padding='same', kernel_initializer="orthogonal")
+        self.batchnorm1 = BatchNormalization()
+
     def call(self, inputs):
-        x = UpSampling2D(size=2, interpolation="nearest")(inputs)
-        x = conv3x3(self.filters * 2)(x)
-        x = BatchNormalization()(x)
-        return  GLU()(x)
+        x = self.upsample1(inputs)
+        x = self.conv1(x)
+        x = self.batchnorm1(x)
+        return ELU()(x)
 
 
 class DownSampleBlock(tf.keras.layers.Layer):
     def __init__(self, filters=16, **kwargs):
         super(DownSampleBlock, self).__init__(**kwargs)
         self.filters = filters
+        
+        self.conv1 = Conv2D(self.filters, 4, 2, use_bias=False)
+        self.batchnorm1 = BatchNormalization()
 
     def call(self, inputs):
         x = ZeroPadding2D(1)(inputs)
-        x = Conv2D(self.filters, 4, 2, use_bias=False)(x)
-        x = BatchNormalization()(x)
+        x = self.conv1(x)
+        x = self.batchnorm1(x)
         return LeakyReLU(alpha=0.2)(x)
 
 
@@ -131,27 +124,35 @@ class KeepDimsBlock(tf.keras.layers.Layer):
     def __init__(self, filters=16, **kwargs):
         super(KeepDimsBlock, self).__init__(**kwargs)
         self.filters = filters
+        
+        self.conv1 = Conv2D(self.filters*2, 3, padding='same', kernel_initializer='orthogonal', use_bias=False)
+        self.batchnorm1 = BatchNormalization()
 
-    @tf.function
     def call(self, inputs):
-        x = conv3x3(self.filters*2)(inputs)
-        BatchNormalization()(x)
-        return GLU()(x)
+        x = self.conv1(inputs)
+        x = self.batchnorm1(x)
+        return LeakyReLU(alpha=0.2)(x)
 
 
 class ResidualBlock(tf.keras.layers.Layer):
     def __init__(self, channels=16, **kwargs):
         super(ResidualBlock, self).__init__(**kwargs)
         self.channels = channels
-
-    @tf.function
+        
+        self.conv1 = Conv2D(filters=self.channels * 2, kernel_size=3, strides=1, padding='same', kernel_initializer='orthogonal', 
+            use_bias=False)
+        self.batchnorm1 = BatchNormalization()
+        self.conv2 = Conv2D(filters=self.channels * 2, kernel_size=3, strides=1, padding='same', kernel_initializer='orthogonal', 
+            use_bias=False)
+        self.batchnorm2 = BatchNormalization()
+        
     def call(self, inputs):
         residual = inputs
-        x = conv3x3(self.channels * 2)(inputs)
-        x = BatchNormalization()(x)
-        x = GLU()(x)
-        x = conv3x3(self.channels)
-        x = BatchNormalization()(x)
+        x = self.conv1(inputs)
+        x = self.batchnorm1(x)
+        x = LeakyReLU(alpha=0.2)(x)
+        x = self.conv2(x)
+        x = self.batchnorm2(x)
         return tf.keras.layers.Add()([x, residual])
 
 
@@ -171,13 +172,18 @@ class InitGenerator(tf.keras.Model):
         self.layer3 = UpSampleBlock(self.gf_dim // 8)
         self.layer4 = UpSampleBlock(self.gf_dim // 16)
         self.layer5 = UpSampleBlock(self.gf_dim // 16)
+        
+        self.dense1 = Dense(self.gf_dim*4*4*1, kernel_initializer='orthogonal', use_bias=False)
+        self.batchnorm1 = BatchNormalization()
 
     def call(self, z_code, h_code):
+        z_code = tf.cast(z_code, dtype=tf.float32)
+        h_code = tf.cast(h_code, dtype=tf.float32)
         x = Concatenate()([z_code, h_code])
-        x = Dense(self.gf_dim*4*4*2, use_bias=False)(x)
-        x = BatchNormalization()(x)
-        x = GLU()(x)
-        x = Reshape((-1, self.gf_dim, 4, 4))(x)
+        x = self.dense1(x)
+        x = self.batchnorm1(x)
+        x = LeakyReLU(alpha=0.2)(x)
+        x = Reshape((4, 4, self.gf_dim))(x)
         x = self.layer1(x)
         x = self.layer2(x)
         x = self.layer3(x)
@@ -186,7 +192,7 @@ class InitGenerator(tf.keras.Model):
 
 
 class IntermediateGenerator(tf.keras.Model):
-    def __init__(self, cfg, gen_dims, hrc=1, num_residual=2, **kwargs):
+    def __init__(self, cfg, gen_dims, hrc=1, num_residual=cfg.GAN['R_NUM'], **kwargs):
         super(IntermediateGenerator, self).__init__(**kwargs)
         self.gf_dim = gen_dims
         self.res = num_residual
@@ -196,49 +202,50 @@ class IntermediateGenerator(tf.keras.Model):
             self.ef_dim = cfg.FINE_GRAINED_CATEGORIES
 
         self.convblock = Sequential([
-            conv3x3(self.gf_dim*2),
-            Activation('relu'),
-            BatchNormalization(self.gf_dim // 2),
-            GLU()
+            Conv2D(self.gf_dim*2, 3, padding='same', kernel_initializer='orthogonal', use_bias=False),
+            BatchNormalization(),
+            Activation('relu')
         ])
-
-        self.residual = self._make_layer(ResidualBlock, self.gf_dim)
+        self.residual = self.make_layer(ResidualBlock, self.gf_dim)
         self.keepdims = KeepDimsBlock(self.gf_dim // 2)
 
-    def _make_layer(self, block, channel_num):
-        layers = []
-        for _ in range(self.res):
-            layers.append(block(channel_num))
-        return Sequential(*layers)
+    def make_layer(self, block, channel_num):
+        return Sequential([block(channel_num),
+                          block(channel_num)])
 
     def call(self, h_code, code):
-        s_size = h_code.shape[2]
-        code = tf.reshape(code, [-1, self.ef_dim, 1, 1])
-        code = tf.repeat(code, [1, 1, s_size, s_size])
-        x = Concatenate([code, h_code], axis=1)   
+        s_size = h_code.shape[1]
+        code = Reshape([1, 1, self.ef_dim])(code)
+        code = tf.tile(code, tf.constant([1, s_size, s_size, 1]))
+        h_code = tf.cast(h_code, dtype=tf.float32)
+        code = tf.cast(code, dtype=tf.float32)
+        x = Concatenate(axis=-1)([code, h_code])
         x = self.convblock(x)
         x = self.residual(x)
         return self.keepdims(x)
 
 
 class GetImage(tf.keras.Model):
-    def __init__(self, gen_dims, **kwargs):
+    def __init__(self, **kwargs):
         super(GetImage, self).__init__(**kwargs)
         self.out_image = Sequential([
-            conv3x3(3),
+            ZeroPadding2D(1),
+            Conv2D(filters=3, kernel_size=3, strides=1, kernel_initializer='orthogonal', 
+            use_bias=False),
             Activation('tanh')
         ])
 
     def call(self, inputs):
-        # The inputs need to be h_code
         return self.out_image(inputs)
 
 
 class GetMask(tf.keras.Model):
-    def __init__(self, gen_dims, **kwargs):
+    def __init__(self, **kwargs):
         super(GetMask, self).__init__(**kwargs)
         self.out_mask = Sequential([
-            conv3x3(1),
+            ZeroPadding2D(1),
+            Conv2D(filters=1, kernel_size=3, strides=1, kernel_initializer='orthogonal', 
+            use_bias=False),
             Activation('sigmoid')
         ])
 
@@ -250,26 +257,25 @@ class GetMask(tf.keras.Model):
 class GeneratorArchitecture(tf.keras.Model):
     def __init__(self, cfg, **kwargs):
         super(GeneratorArchitecture, self).__init__(**kwargs)
+        self.cfg = cfg
         self.gen_dims = cfg.GAN['GF_DIM']
         self.upsampling = UpSampling2D(size=2, interpolation='bilinear')
-        self.scale_foreground = UpSampling2D(size=2, interpolation='bilinear') 
-        # TODO: Assert that scaled foreground needs to be of size [126, 126]
-
+        
         # Background Stage
         self.background_gen = InitGenerator(cfg, self.gen_dims*16, 2)
-        self.image_bg = GetImage(self.gen_dims) # Background Image
+        self.image_bg = GetImage() # Background Image
 
         # Parent Stage
         self.parent_gen1 = InitGenerator(cfg, self.gen_dims*16, 1)
         self.parent_gen2 = IntermediateGenerator(cfg, self.gen_dims, 1)
-        self.image_gen2 = GetImage(self.gen_dims // 2) # Parent Foreground
-        self.mask_gen2 = GetMask(self.gen_dims // 2) # Parent Mask
+        self.image_gen2 = GetImage() # Parent Foreground
+        self.mask_gen2 = GetMask() # Parent Mask
 
         # Child Stage
         # TODO: Include the ResidualGen before IntermediateGen
         self.child_gen = IntermediateGenerator(cfg, self.gen_dims // 2, 0)
-        self.image_child = GetImage(self.gen_dims // 4) # Child Foreground
-        self.mask_child = GetMask(self.gen_dims // 4) # Child Mask
+        self.image_child = GetImage() # Child Foreground
+        self.mask_child = GetMask() # Child Mask
 
     def call(self, z_code, c_code, p_code=None, bg_code=None):
         fake_images = [] # [Background images, Parent images, Child images]
@@ -277,10 +283,33 @@ class GeneratorArchitecture(tf.keras.Model):
         masks = [] # [Parent masks, Child masks]
         foreground_masks = [] # [Parent foreground mask, Child foreground mask]
 
+        # Set only during training
+        
+        # Obtaining the parent code from child code
+        # _ = child_to_parent(c_code, self.cfg.FINE_GRAINED_CATEGORIES, self.cfg.SUPER_CATEGORIES)       
+#         p_code_np = []
+        
+#         for i in range(16):
+#             p_inner = []
+#             for j in range(20):
+#                 p_inner.append(0.)
+#             p_code_np.append(p_inner)
+                        
+#         for i in range(16):
+#             idx = int(np.random.choice(200, 1)/20)
+#             p_code_np[i][idx] = 1
+            
+#         p_code = tf.convert_to_tensor(p_code_np)
+#         p_code = tf.cast(p_code, dtype=tf.float32)
+
+        # p_code = self.parent_code
+        bg_code = tf.cast(c_code, dtype=tf.float32)
+
         # Background Stage
         bg_stage_code = self.background_gen(z_code, bg_code) # Upsampled Background
         fake_bg = self.image_bg(bg_stage_code)
-        fake_images.append(self.scale_foreground(fake_bg))
+        fake_img_126 = tf.image.resize(fake_bg,(126, 126))
+        fake_images.append(fake_img_126)
 
         # Parent Stage
         fp_dims = self.parent_gen1(z_code, p_code)
@@ -325,7 +354,7 @@ class DiscriminatorArchitecture(tf.keras.Model):
             self.encoder_dims = 1
         elif self.stage_num == 1:
             self.encoder_dims = cfg.SUPER_CATEGORIES
-        else:
+        elif self.stage_num == 2:
             self.encoder_dims = cfg.FINE_GRAINED_CATEGORIES
 
         if self.stage_num == 0:
@@ -344,18 +373,22 @@ class DiscriminatorArchitecture(tf.keras.Model):
             self.code_16 = ParentChildEncoder(self.disc_dims)
             self.code_32 = DownSampleBlock(self.disc_dims*16)
             self.code = Sequential([
-                conv3x3(self.disc_dims*8),
+                Conv2D(self.disc_dims*8, 3, padding='same', kernel_initializer='orthogonal', use_bias=False),
+                BatchNormalization(),
                 LeakyReLU(alpha=0.2)
             ])
+            # Pass gradients through
             self.logits_pc = Sequential([
-                Conv2D(self.encoder_dims, 4, 4)
+                Conv2D(self.encoder_dims, 4, 4, name=f'logits_pc_{self.stage_num}')
             ])
+            # Pass gradients through
             self.jointConv = Sequential([
-                conv3x3(self.disc_dims*8),
+                Conv2D(self.disc_dims*8, 3, padding='same', kernel_initializer='orthogonal', use_bias=False, name=f'joint_conv_{self.stage_num}'),
+                BatchNormalization(),
                 LeakyReLU(alpha=0.2)
             ])
             self.logits_pc1 = Sequential([
-                Conv2D(1, 4, 4),
+                Conv2D(1, 4, 4, use_bias=False),
                 Activation('sigmoid')
             ])
 
@@ -374,5 +407,5 @@ class DiscriminatorArchitecture(tf.keras.Model):
             x = self.jointConv(x)
             p_c = self.logits_pc(x) # Information maximising code (D_pinfo or D_cinfo)
             real_fake_child = self.logits_pc1(x) # Real/Fake classification - child (D_adv)
-            return [tf.reshape(p_c, [-1, self.encoder_dims]), tf.reshape(real_fake_child, [-1])]
+            return [Reshape([self.encoder_dims])(p_c), real_fake_child]
 
