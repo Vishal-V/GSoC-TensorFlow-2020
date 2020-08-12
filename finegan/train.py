@@ -480,3 +480,23 @@ class FineGAN(object):
         print(f'[INFO] Saving model after {self.num_epochs} epochs')
         return
 
+if __name__ == '__main__':
+    cfg = Config(32)
+    print(f'[INFO] Initialize CUB Dataset...')
+
+    data_dir = '../../CUB data/CUB_200_2011'
+    filename_path = data_dir + "/filenames.pickle"
+    class_id_path = data_dir + "/class_info.pickle"
+    dataset_path = "../../CUB data/CUB_200_2011"
+    print(f'[INFO] Before loading CUB Dataset...')
+    train_dataset = load_data(filename_path, class_id_path, dataset_path, size=(128,128))
+    print(f'[INFO] After loading CUB Dataset...')
+
+    algo = FineGAN(cfg, data_dir, train_dataset)
+
+    print(f'[INFO] FineGAN Training starts...')
+    start_t = time.time()
+    algo.train_model()
+    end_t = time.time()
+    print(f'Total time for training: {end_t - start_t}s')
+    print(f'[INFO] FineGAN Training Complete...')
