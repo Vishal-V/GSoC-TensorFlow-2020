@@ -277,27 +277,29 @@ class FineGAN(object):
 
                 if i==0 or i==2:
                     real_labels = tf.ones_like(outputs[1])
-                    gen_loss = loss1(outputs[1], real_labels)
+                    gen_loss = loss1(real_labels, outputs[1])
 
                     if i==0:
                         gen_loss *= cfg.TRAIN['BG_LOSS_WT']
                         # Background/Foreground classification loss for the fake background
-                        gen_class = loss1(outputs[0], real_labels)
+                        gen_class = loss1(real_labels, outputs[0])
                         gen_loss += gen_class
 
                     generator_error += gen_loss
-
+                
                 if i==1:
                     # Information maximizing loss for parent stage
                     parent_prediction = self.discriminators[1](self.foreground_masks[i-1])                   
-                    parent_code = tf.cast(parent_code, dtype=tf.float32)                                                                        
-                    gen_info_loss = class_loss(parent_prediction[0], parent_code)
+                    parent_code = tf.cast(parent_code, dtype=tf.float32)
+                    gen_info_loss = class_loss(parent_code, parent_prediction[0])
+                    stage_1_info_loss = gen_info_loss * 2
                                         
                 elif i==2:
                     # Information maximizing loss for child stage
                     child_prediction = self.discriminators[2](self.foreground_masks[i-1])
                     c_code = tf.cast(c_code, dtype=tf.float32)
-                    gen_info_loss = class_loss(child_prediction[0], c_code)
+                    gen_info_loss = class_loss(c_code, child_prediction[0])
+                    stage_2_info_loss = gen_info_loss * 2
 
                 if i>0:
                     generator_error += gen_info_loss
@@ -306,17 +308,19 @@ class FineGAN(object):
 
         grads_1 = tape.gradient(generator_error, self.generator.trainable_variables)
         grads_2 = tape.gradient(generator_error, self.discriminators[1].trainable_variables[:-1])
-        grads_3 = tape.gradient(generator_error, self.discriminators[2].layers[-2].trainable_variables)
-        grads_4 = tape.gradient(generator_error, self.discriminators[2].layers[-3].trainable_variables)
+        #grads_gen_2 = tape.gradient(stage_1_info_loss, self.generator.trainable_variables[19:57])
+        grads_3 = tape.gradient(generator_error, self.discriminators[2].trainable_variables[-3:-1])
+        #grads_gen_3 = tape.gradient(stage_2_info_loss, self.generator.trainable_variables[57:])
         
         for index in range(3):
             if index == 0:
                 self.optimizer_gen_list[index].apply_gradients(zip(grads_1, self.generator.trainable_variables))
             elif index == 1:
                 self.optimizer_gen_list[index].apply_gradients(zip(grads_2, self.discriminators[index].trainable_variables[:-1]))
+                #self.optimizer_gen_list[index].apply_gradients(zip(grads_gen_2, self.generator.trainable_variables[19:57]))
             elif index == 2:
-                self.optimizer_gen_list[index].apply_gradients(zip(grads_3, self.discriminators[2].layers[-2].trainable_variables))
-                self.optimizer_gen_list[index].apply_gradients(zip(grads_4, self.discriminators[2].layers[-3].trainable_variables))
+                self.optimizer_gen_list[index].apply_gradients(zip(grads_3, self.discriminators[index].trainable_variables[-3:-1]))
+                #self.optimizer_gen_list[index].apply_gradients(zip(grads_gen_3, self.generator.trainable_variables[57:]))
 
         return generator_error
     
@@ -370,17 +374,17 @@ class FineGAN(object):
     def disc_step_stage0(self, stage, real_images, real_labels, fake_images, fake_labels, loss, loss1, real_weights):
         with tf.GradientTape() as tape:
             real_logits = self.discriminators[stage](real_images)
-            fake_logits = self.discriminators[stage](fake_images)
+            fake_logits = self.discriminators[stage](tf.stop_gradient(fake_images))
             ext, output = real_logits
 
             norm_real = tf.reduce_sum(real_weights)
             norm_fake = self.batch_size * real_weights.shape[1] * real_weights.shape[2] * real_weights.shape[3]
             real_logits = ext, output
         
-            error_disc_real = loss(real_logits[1], real_labels)
+            error_disc_real = loss(real_labels, real_logits[1])
             error_disc_real = tf.keras.backend.mean(tf.math.multiply(error_disc_real, real_weights))
-            error_disc_classification = tf.keras.backend.mean(loss(real_logits[0], real_weights))
-            error_disc_fake = loss(fake_logits[1], fake_labels)
+            error_disc_classification = tf.keras.backend.mean(loss(real_weights, real_logits[0]))
+            error_disc_fake = loss(fake_labels, fake_logits[1])
             error_disc_fake = tf.keras.backend.mean(error_disc_fake)
 
             if norm_real > 0:
@@ -396,14 +400,15 @@ class FineGAN(object):
         self.optimizer_disc_list[stage].apply_gradients(zip(grads, self.discriminators[stage].trainable_variables))
         return discriminator_error
     
+    
     @tf.function
     def disc_step_stage2(self, stage, real_images, real_labels, fake_images, fake_labels, loss, loss1):
         with tf.GradientTape() as tape:
             real_logits = self.discriminators[stage](real_images)
             fake_logits = self.discriminators[stage](fake_images)
             
-            error_real = loss1(real_logits[1], real_labels) # Real/Fake loss for the real image
-            error_fake = loss1(fake_logits[1], fake_labels) # Real/Fake loss for the fake image   
+            error_real = loss1(real_labels, real_logits[1]) # Real/Fake loss for the real image
+            error_fake = loss1(fake_labels, fake_logits[1]) # Real/Fake loss for the fake image   
             discriminator_error = error_real + error_fake
 
         grads = tape.gradient(discriminator_error, self.discriminators[stage].trainable_variables)
@@ -411,13 +416,23 @@ class FineGAN(object):
         return discriminator_error
         
     
-    def train_model(self):
+    def train_model(self, start=True):
         self.patch_stride = 4.0 # Receptive field stride for Backround Stage Discriminator 
         self.num_out = 24 # Patch output size in NxN
         
         self.receptive_field = 34 # Receptive field of every patch in NxN
 
+        print(f'[INFO] Starting FineGAN Training...')
         self.generator, self.discriminators, self.num_disc, start_epoch = load_finegan_network(cfg)
+        
+        if start == False:
+            self.generator.load_weights('./Checkpoints/generator_225_epochs.ckpt')
+            self.discriminators[0].load_weights('./Checkpoints/discriminator_0_225_epochs.ckpt')
+            self.discriminators[1].load_weights('./Checkpoints/discriminator_1_225_epochs.ckpt')
+            self.discriminators[2].load_weights('./Checkpoints/discriminator_2_225_epochs.ckpt')
+            print(f'[INFO] Loaded FineGAN Weights...')
+            print(f'[INFO] Continuing FineGAN Training...')
+            
         self.optimizer_gen_list, self.optimizer_disc_list = define_optimizers(self.generator, self.discriminators)
 
         self.loss = tf.keras.losses.BinaryCrossentropy()
@@ -431,22 +446,24 @@ class FineGAN(object):
         
         data = tf.data.Dataset.from_tensor_slices((fimgs_list, cimgs_list, child_code_list, mod_bbox_list))
         data = data.batch(16)
-        data = data.map(lambda fimgs, cimgs, child_code, mod_bbox: casting_func(fimgs, cimgs, child_code, mod_bbox), num_parallel_calls=tf.data.experimental.AUTOTUNE)
-        data = data.shuffle(1000).prefetch(1)
+        data = data.map(lambda fimgs, cimgs, child_code, mod_bbox: casting_func(fimgs, cimgs, child_code, mod_bbox), num_parallel_calls=AUTOTUNE)
+        data = data.shuffle(1000).prefetch(2)
+                    
+        start_epoch = 225
+        self.num_epochs = 300
                 
-        print(f'[INFO] Starting FineGAN Training...')
-        start_epoch = 0
-        self.num_epochs = 25
-                
-        for epoch in range(self.num_epochs):
+        for epoch in range(start_epoch, self.num_epochs):
                 
             print(f'[Train] FineGAN Epoch: {epoch+1}/{self.num_epochs}')
             start_time = time.time()
+            count = 0
             for i, batch in enumerate(data):
                 self.real_fimages, self.real_cimages, self.c_code, self.bbox = batch
                 
                 if self.c_code.shape[0] != self.batch_size:
-                    break
+                    # print(f'Received batch_size of {self.c_code.shape}')
+                    # print(f'Stopped at Batch: {count}')
+                    continue
                                         
                 ratio = 10
                 child_code = self.c_code.numpy()
@@ -456,7 +473,7 @@ class FineGAN(object):
                 for i in range(child_code.shape[0]):
                     parent_code[i][arg_parent[i]] = 1
                 
-                parent_code = tf.convert_to_tensor(parent_code)
+                parent_code = tf.Variable(parent_code)
                 self.parent_code = tf.cast(parent_code, dtype=tf.float32)
                                 
                 z_dims = cfg.GAN['Z_DIM']
@@ -468,17 +485,27 @@ class FineGAN(object):
                     if index==0 or index==2:
                         discriminator_error = self.train_discriminator(index)
                         total_discriminator_error += discriminator_error
-                print(f'Discriminator Error: {total_discriminator_error}')
+                # print(f'Discriminator Error: {total_discriminator_error}')
                 
                 total_generator_error = self.train_generator()
-                print(f'Generator Error: {total_generator_error}')
-
+                # print(f'Generator Error: {total_generator_error}')
+                
+                if count%50 == 0:
+                    print(f'Epoch {epoch+1} Batch: {count+1}')
+                    print(f'Discriminator Error: {total_discriminator_error}')
+                    print(f'Generator Error: {total_generator_error}')
+                count += 1
             end_time = time.time()
             print(f'[INFO] Epoch: {epoch+1}/{self.num_epochs} took {(end_time-start_time):.2}s.')
             
             
         print(f'[INFO] Saving model after {self.num_epochs} epochs')
+        self.generator.save_weights('./Checkpoints/generator_300_epochs.ckpt')
+        self.discriminators[0].save_weights('./Checkpoints/discriminator_0_300_epochs.ckpt')
+        self.discriminators[1].save_weights('./Checkpoints/discriminator_1_300_epochs.ckpt')
+        self.discriminators[2].save_weights('./Checkpoints/discriminator_2_300_epochs.ckpt')
         return
+
 
 if __name__ == '__main__':
     cfg = Config(32)
@@ -496,7 +523,7 @@ if __name__ == '__main__':
 
     print(f'[INFO] FineGAN Training starts...')
     start_t = time.time()
-    algo.train_model()
+    algo.train_model(start=False)
     end_t = time.time()
     print(f'Total time for training: {end_t - start_t}s')
     print(f'[INFO] FineGAN Training Complete...')

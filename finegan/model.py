@@ -32,11 +32,26 @@ assert tf.version.VERSION.startswith('2.')
 
 from tensorflow.keras import Input, Model, Sequential
 from tensorflow.keras.layers import LeakyReLU, BatchNormalization, ReLU, Activation, LeakyReLU
-from tensorflow.keras.layers import UpSampling2D, Conv2D, Concatenate, Dense, concatenate
+from tensorflow.keras.layers import UpSampling2D, Conv2D, Concatenate, Dense, concatenate, Conv2DTranspose
 from tensorflow.keras.layers import Flatten, Lambda, Reshape, ZeroPadding2D, add, dot, ELU
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
+
+class GLU(tf.keras.layers.Layer):
+    def __init__(self):
+        super(GLU, self).__init__()
+
+    def call(self, inputs):
+        nc = inputs.shape[-1]
+        assert nc % 2 == 0, 'Channels are not divisible by 2.'
+        nc = int(nc/2)
+        if len(inputs.shape) == 2:
+            val = inputs[:,:nc] * tf.math.sigmoid(inputs[:,nc:])
+        else:
+            val = inputs[:,:,:,:nc] * tf.math.sigmoid(inputs[:,:,:,nc:])
+        return val
+    
 
 class ParentChildEncoder(tf.keras.layers.Layer):
     """Encoder for parent and child images"""
@@ -94,15 +109,14 @@ class UpSampleBlock(tf.keras.layers.Layer):
         super(UpSampleBlock, self).__init__(**kwargs)
         self.filters = filters
         
-        self.upsample1 = UpSampling2D(size=2, interpolation="nearest")
-        self.conv1 = Conv2D(self.filters*2, 3, padding='same', kernel_initializer="orthogonal")
+        self.upsample1 = Conv2DTranspose(self.filters*2, 3, strides=2, padding='same',
+                                         kernel_initializer="orthogonal", use_bias=False)
         self.batchnorm1 = BatchNormalization()
 
     def call(self, inputs):
         x = self.upsample1(inputs)
-        x = self.conv1(x)
         x = self.batchnorm1(x)
-        return ELU()(x)
+        return GLU()(x)
 
 
 class DownSampleBlock(tf.keras.layers.Layer):
@@ -125,13 +139,14 @@ class KeepDimsBlock(tf.keras.layers.Layer):
         super(KeepDimsBlock, self).__init__(**kwargs)
         self.filters = filters
         
-        self.conv1 = Conv2D(self.filters*2, 3, padding='same', kernel_initializer='orthogonal', use_bias=False)
+        self.conv1 = Conv2D(self.filters*2, 3, kernel_initializer='orthogonal', use_bias=False)
         self.batchnorm1 = BatchNormalization()
 
     def call(self, inputs):
-        x = self.conv1(inputs)
+        x = ZeroPadding2D(1)(inputs)
+        x = self.conv1(x)
         x = self.batchnorm1(x)
-        return LeakyReLU(alpha=0.2)(x)
+        return GLU()(x)
 
 
 class ResidualBlock(tf.keras.layers.Layer):
@@ -139,18 +154,20 @@ class ResidualBlock(tf.keras.layers.Layer):
         super(ResidualBlock, self).__init__(**kwargs)
         self.channels = channels
         
-        self.conv1 = Conv2D(filters=self.channels * 2, kernel_size=3, strides=1, padding='same', kernel_initializer='orthogonal', 
+        self.conv1 = Conv2D(filters=self.channels * 2, kernel_size=3, strides=1, kernel_initializer='orthogonal', 
             use_bias=False)
         self.batchnorm1 = BatchNormalization()
-        self.conv2 = Conv2D(filters=self.channels * 2, kernel_size=3, strides=1, padding='same', kernel_initializer='orthogonal', 
+        self.conv2 = Conv2D(filters=self.channels, kernel_size=3, strides=1, kernel_initializer='orthogonal', 
             use_bias=False)
         self.batchnorm2 = BatchNormalization()
         
     def call(self, inputs):
         residual = inputs
-        x = self.conv1(inputs)
+        x = ZeroPadding2D(1)(inputs)
+        x = self.conv1(x)
         x = self.batchnorm1(x)
-        x = LeakyReLU(alpha=0.2)(x)
+        x = GLU()(x)
+        x = ZeroPadding2D(1)(x)
         x = self.conv2(x)
         x = self.batchnorm2(x)
         return tf.keras.layers.Add()([x, residual])
@@ -173,7 +190,7 @@ class InitGenerator(tf.keras.Model):
         self.layer4 = UpSampleBlock(self.gf_dim // 16)
         self.layer5 = UpSampleBlock(self.gf_dim // 16)
         
-        self.dense1 = Dense(self.gf_dim*4*4*1, kernel_initializer='orthogonal', use_bias=False)
+        self.dense1 = Dense(self.gf_dim*4*4*2, kernel_initializer='orthogonal', use_bias=False)
         self.batchnorm1 = BatchNormalization()
 
     def call(self, z_code, h_code):
@@ -182,7 +199,7 @@ class InitGenerator(tf.keras.Model):
         x = Concatenate()([z_code, h_code])
         x = self.dense1(x)
         x = self.batchnorm1(x)
-        x = LeakyReLU(alpha=0.2)(x)
+        x = GLU()(x)
         x = Reshape((4, 4, self.gf_dim))(x)
         x = self.layer1(x)
         x = self.layer2(x)
@@ -202,10 +219,12 @@ class IntermediateGenerator(tf.keras.Model):
             self.ef_dim = cfg.FINE_GRAINED_CATEGORIES
 
         self.convblock = Sequential([
-            Conv2D(self.gf_dim*2, 3, padding='same', kernel_initializer='orthogonal', use_bias=False),
+            ZeroPadding2D(1),
+            Conv2D(self.gf_dim*2, 3, 1, kernel_initializer='orthogonal', use_bias=False),
             BatchNormalization(),
-            Activation('relu')
+            GLU()
         ])
+
         self.residual = self.make_layer(ResidualBlock, self.gf_dim)
         self.keepdims = KeepDimsBlock(self.gf_dim // 2)
 
@@ -250,7 +269,6 @@ class GetMask(tf.keras.Model):
         ])
 
     def call(self, inputs):
-        # The inputs need to be h_code
         return self.out_mask(inputs)
 
     
@@ -259,8 +277,7 @@ class GeneratorArchitecture(tf.keras.Model):
         super(GeneratorArchitecture, self).__init__(**kwargs)
         self.cfg = cfg
         self.gen_dims = cfg.GAN['GF_DIM']
-        self.upsampling = UpSampling2D(size=2, interpolation='bilinear')
-        
+                
         # Background Stage
         self.background_gen = InitGenerator(cfg, self.gen_dims*16, 2)
         self.image_bg = GetImage() # Background Image
@@ -284,25 +301,6 @@ class GeneratorArchitecture(tf.keras.Model):
         foreground_masks = [] # [Parent foreground mask, Child foreground mask]
 
         # Set only during training
-        
-        # Obtaining the parent code from child code
-        # _ = child_to_parent(c_code, self.cfg.FINE_GRAINED_CATEGORIES, self.cfg.SUPER_CATEGORIES)       
-#         p_code_np = []
-        
-#         for i in range(16):
-#             p_inner = []
-#             for j in range(20):
-#                 p_inner.append(0.)
-#             p_code_np.append(p_inner)
-                        
-#         for i in range(16):
-#             idx = int(np.random.choice(200, 1)/20)
-#             p_code_np[i][idx] = 1
-            
-#         p_code = tf.convert_to_tensor(p_code_np)
-#         p_code = tf.cast(p_code, dtype=tf.float32)
-
-        # p_code = self.parent_code
         bg_code = tf.cast(c_code, dtype=tf.float32)
 
         # Background Stage
@@ -373,7 +371,8 @@ class DiscriminatorArchitecture(tf.keras.Model):
             self.code_16 = ParentChildEncoder(self.disc_dims)
             self.code_32 = DownSampleBlock(self.disc_dims*16)
             self.code = Sequential([
-                Conv2D(self.disc_dims*8, 3, padding='same', kernel_initializer='orthogonal', use_bias=False),
+                ZeroPadding2D(1),
+                Conv2D(self.disc_dims*8, 3, kernel_initializer='orthogonal', use_bias=False),
                 BatchNormalization(),
                 LeakyReLU(alpha=0.2)
             ])
@@ -383,7 +382,8 @@ class DiscriminatorArchitecture(tf.keras.Model):
             ])
             # Pass gradients through
             self.jointConv = Sequential([
-                Conv2D(self.disc_dims*8, 3, padding='same', kernel_initializer='orthogonal', use_bias=False, name=f'joint_conv_{self.stage_num}'),
+                ZeroPadding2D(1),
+                Conv2D(self.disc_dims*8, 3, kernel_initializer='orthogonal', use_bias=False, name=f'joint_conv_{self.stage_num}'),
                 BatchNormalization(),
                 LeakyReLU(alpha=0.2)
             ])
@@ -407,5 +407,5 @@ class DiscriminatorArchitecture(tf.keras.Model):
             x = self.jointConv(x)
             p_c = self.logits_pc(x) # Information maximising code (D_pinfo or D_cinfo)
             real_fake_child = self.logits_pc1(x) # Real/Fake classification - child (D_adv)
-            return [Reshape([self.encoder_dims])(p_c), real_fake_child]
-
+            return [Reshape([self.encoder_dims])(p_c), Reshape([-1])(real_fake_child)]
+            
