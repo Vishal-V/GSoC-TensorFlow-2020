@@ -5,7 +5,6 @@
 ### **Mentors**
 - Jaeyoun Kim ([@jaeyounkim](https://github.com/jaeyounkim))
 - Yanhui Liang ([@yhliang2018](https://github.com/yhliang2018))
-- Paige Bailey ([@dynamicwebpaige](https://github.com/dynamicwebpaige))  
   
 ## **Aim**
 A collection of state-of-the-art Deep Learning models for the TensorFlow Model Garden implemented from their papers and trained on the datasets they are benchmarked on. My aim is to add some of the most exciting models to the Model Garden to help make model prototyping much faster and promote research using TF 2.x.
