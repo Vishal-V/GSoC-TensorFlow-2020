@@ -25,10 +25,11 @@ State-of-the-art Deep Learning models for the TensorFlow Model Garden implemente
 |E2| FineGAN Training Pipeline |[Here](https://github.com/Vishal-V/tf-models/tree/master/finegan)| Complete |[ #9173](https://github.com/tensorflow/models/pull/9173), [ #8750](https://github.com/tensorflow/models/pull/8750)|
 |E3| FineGAN Benchmark |[Here](https://github.com/Vishal-V/tf-models/tree/master/finegan)| Partial |[ #9173](https://github.com/tensorflow/models/pull/9173)|
 |E3| FineGAN - Notebook |[Here](https://github.com/Vishal-V/tf-models/blob/master/finegan/notebooks/efficient%20trials.ipynb)| Partial |[ #9173](https://github.com/tensorflow/models/pull/9173)|
-|E3| Expressivity of BN - Code|[Here](https://github.com/Vishal-V/tf-models/onlyBN/)|Complete| [ ]()|
-|E3| Expressivity of BN - Notebook |[Here](https://github.com/Vishal-V/tf-models/onlyBN/notebooks)|Complete| [ ]()|
-|E3| SIREN - Notebook|[Here](https://github.com/Vishal-V/tf-models/siren/notebook/)|Partial| [ ]()|
-|E3| Detection Transformer |[Here](https://github.com/Vishal-V/tf-models/detr/)|In Progress| [ ]()|
+|E3| Expressivity of BN - Code|[Here](https://github.com/Vishal-V/tf-models/tree/master/onlyBN)|Complete| [ #9174](https://github.com/tensorflow/models/pull/9174)|
+|E3| Expressivity of BN - Notebook |[Here](https://github.com/Vishal-V/tf-models/tree/master/onlyBN/notebooks)|Complete| [ #9174](https://github.com/tensorflow/models/pull/9174)|
+|E3| SIREN - Notebook|[Here](https://github.com/Vishal-V/tf-models/tree/master/siren/notebooks/)|Partial| [ ]()|
+|E3| SIREN - Code|[Here](https://github.com/Vishal-V/tf-models/tree/master/siren/)|In Progress| [ ]()|
+|E3| Detection Transformer |[Here](https://github.com/Vishal-V/tf-models/tree/master/detr)|In Progress| [ ]()|
 
 <!-- |E3| MUNIT |[Here](https://github.com/Vishal-V/tf-models/munit/)|In Progress| [ ]()| -->
 
@@ -47,7 +48,7 @@ The expressive power of BatchNormalization is an under investigated topic. This 
 Two points to consider: The TensorFlow image translate function from TF Addons and did not perform as well as the paper authors have claimed. The same holds for the weight_decay that I used as SGDW and also as l2 kernel regularizer but in both cases, the training diverged. 
 - **Model**: https://github.com/Vishal-V/tf-models/tree/master/onlyBN
 - **Instructions**: https://github.com/Vishal-V/tf-models/tree/master/onlyBN/README.md
-- **Notebook**: [GitHub Link](https://github.com/Vishal-V/tf-models/tree/master/onlyBN/notebooks/)
+- **Notebook**: [GitHub Link](https://github.com/Vishal-V/tf-models/tree/master/onlyBN/notebooks/), [Colab Link](https://colab.research.google.com/drive/1Kr0zXT-OkyM51VDwUd1vBsFm8GLp8RTN?usp=sharing)
   
 ### OnlyBN ResNet Experiments
 Running the OnlyBN ResNet model experiments (without frozen training) with the TinyImageNet dataset with progressive resizing and DepthwiseSeparableConv2D for efficient training. The model can also be used with all the layers except the BatchNorm layers set to be trainable. The author's benchmark of 32% for ImageNet with ResNet-200 may not be of much use to reproduce the results of, hence this notebook discusses alternative techniques including Cyclic Learning Rate.
@@ -57,14 +58,19 @@ Running the OnlyBN ResNet model experiments (without frozen training) with the T
     
 ### SIREN
 Implicit Neural Representations with Periodic Activation Functions or SIREN is an exciting new paper from CVPR 2020 that can be used for a phenomenal array of applications including image inpainting, fitting an image, fitting an audio signal and even solving Poisson's equation! This notebook is a minimal demo of the model for fitting an image. The benchmarks for the same is in progress.
-- - **Model**: https://github.com/Vishal-V/tf-models/tree/master/siren/
+- **Model**: https://github.com/Vishal-V/tf-models/tree/master/siren/
 - **Notebook**: [GitHub Link](https://github.com/Vishal-V/tf-models/tree/master/siren/notebooks/)
 
 <!-- [Colab Link](https://colab.research.google.com/drive/15Mqrbtv5u39P9UOwIFjJWkpW6YsS7nA8) -->
   
 ### Detection Transformer (DETR)
 End-to-end object detector with Transformer is a set based detector that uses the transformer architecture on top of a convolution backbone to perform tasks such as object detection and panoptic segmentation. The model takes in positional encodings for the transformer encoder. The set global loss that forces unique predictions for via bipartite matching and the encoder-decoder architecture does away with handcoded features and non-max suppression.
-- **Model**: https://github.com/Vishal-V/tf-models/detr/
+- **Model**: https://github.com/Vishal-V/tf-models/tree/master/detr
+  
+#
+### TensorFlow User Group Community Page
+Posted well researched and concise posts for the TFUG Community page from March 27 to Aug 28. I helped the page gain followers regularly and interacted with all impressions of the pots. In all, I helped grow the page from 2,750 followers to 31,325 followers over the course of the 3 month GSoC period.
+- **Page**: https://www.linkedin.com/company/tensorflow
   
 <!-- ### MUNIT (Multimodal Image-to-Image Translation)
 MUNIT is one of the classic Image-to-Image translation models that is able to learn a multimodal distribution and model translations from various domains. MUNIT does this by decomposing the image style and content into their domains and then recombining them in diverse ways. The implementation although SoTA for Edge-to-Handbags, this implementation is more concerned towards the Cityscapes dataset for various weather domain translation. [In Progress]

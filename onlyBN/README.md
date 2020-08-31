@@ -65,11 +65,11 @@ pip install -r requirements.txt
 |------------|----------|----------------|
 | ResNet-14 (N=2)| [Checkpoint](https://drive.google.com/...) | 46.67% |
 | ResNet-32 (N=5)| [Checkpoint](https://drive.google.com/...) | 51.29% |
-| ResNet-56 (N=9)| [Checkpoint](https://drive.google.com/...) | 46.67% |
-| ResNet-110 (N=18)| [Checkpoint](https://drive.google.com/...) | 46.67% |
-| ResNet-218 (N=36)| [Checkpoint](https://drive.google.com/...) | 46.67% |
-| ResNet-434 (N=72)| [Checkpoint](https://drive.google.com/...) | 46.67% |
-| ResNet-866 (N=144)| [Checkpoint](https://drive.google.com/...) | 46.67% |
+| ResNet-56 (N=9)| [Checkpoint](https://drive.google.com/...) | 55.21% |
+| ResNet-110 (N=18)| [Checkpoint](https://drive.google.com/...) | 65.19% |
+| ResNet-218 (N=36)| [Checkpoint](https://drive.google.com/...) | 70.09% |
+| ResNet-434 (N=72)| [Checkpoint](https://drive.google.com/...) | 73.67% |
+| ResNet-866 (N=144)| [Checkpoint](https://drive.google.com/...) | 77.83% |
 #  
 ## Dataset
 
@@ -86,16 +86,16 @@ pip install -r requirements.txt
 Please run this command line for training.
 
 ```shell
-python3 model.py --num_blocks=2
+python3 resnet_cifar.py
 ```
 This trains the OnlyBN model for the ResNet-14 architecture. Replace `num_blocks` with the appropriate value for 'N' from the results table above to train the respective ResNet architecture.  
   
 ## Evaluation
-
+<!-- 
 > :memo: Provide an evaluation script with details of how to reproduce results.  
 >  
 > * Describe data preprocessing / postprocessing steps.  
-> * Provide a command line example for evaluation.  
+> * Provide a command line example for evaluation.   -->
 
 Please run this command line for evaluation.
 
