@@ -14,7 +14,7 @@ State-of-the-art Deep Learning models for the TensorFlow Model Garden implemente
 |[FineGAN](https://arxiv.org/abs/1811.11155)|CVPR ‘19 |[SoTA](https://github.com/kkanshul/finegan/) for CUB 128x128, CUB, Stanford Cars [Image Generation]|
 |[DETR](https://arxiv.org/abs/2005.12872v3)|NeurIPS ‘20 |[SoTA](https://github.com/facebookresearch/detr/) for COCO Panoptic [Panoptic Segmentation]|
 |[Expressivity of Batchnorm](https://arxiv.org/abs/2003.00152)|NeurIPS '20 |[Official Implementation](https://github.com/facebookresearch/open_lth) for CIFAR10 and ImageNet|
-|[SIREN](https://arxiv.org/abs/2006.09661v1)|CVPR '20 |[SoTA](https://github.com/nvlabs/MUNIT) for Cityscapes, Edge-to-Handbags [Image Translation]|
+|[SIREN](https://arxiv.org/abs/2006.09661v1)|CVPR '20 |[Oficial Implementation](https://github.com/vsitzmann/siren) for Image Inpainting|
 
 <!-- |[MUNIT](https://arxiv.org/abs/1804.04732)|ECCV '18 |[SoTA](https://github.com/nvlabs/MUNIT) for Cityscapes, Edge-to-Handbags [Image Translation]| -->
 #
@@ -49,7 +49,7 @@ Two points to consider: The TensorFlow image translate function from TF Addons a
 - **Instructions**: https://github.com/Vishal-V/tf-models/onlyBN/README.md
 - **Notebook**: [GitHub Link](https://github.com/Vishal-V/tf-models/onlyBN/notebooks/)
   
-### Only BatchNorm ResNet 
+### OnlyBN ResNet Experiments
 Running the OnlyBN ResNet model experiments (without frozen training) with the TinyImageNet dataset with progressive resizing and DepthwiseSeparableConv2D for efficient training. The model can also be used with all the layers except the BatchNorm layers set to be trainable. The author's benchmark of 32% for ImageNet with ResNet-200 may not be of much use to reproduce the results of, hence this notebook discusses alternative techniques including Cyclic Learning Rate.
 - **Model**: https://github.com/Vishal-V/tf-models/onlyBN/Notebooks/efficient_tiny.ipynb
 - **Instructions**: https://github.com/Vishal-V/tf-models/onlyBN/README.md

@@ -200,10 +200,7 @@ def load_finegan_network(cfg):
         discriminators.append(DiscriminatorArchitecture(cfg, i))
     print(f'[INFO] Initialized Discriminators...')
         
-    start_epoch = 0
-
-    # TODO: Load the weights for gen and discs and extract the end epoch
-    
+    start_epoch = 0    
     return generator, discriminators, len(discriminators), start_epoch
 
 
@@ -254,11 +251,6 @@ class FineGAN(object):
             plt.subplot(num_rows, num_cols, index + 1)
             plt.imshow(image)
             plt.axis("off")
-            
-
-    def load_models(self):
-        # TODO: Load all the weights
-        pass
     
     
     @tf.function
@@ -303,8 +295,6 @@ class FineGAN(object):
 
                 if i>0:
                     generator_error += gen_info_loss
-
-            # TODO: Tensorboard Summary for train_generator
 
         grads_1 = tape.gradient(generator_error, self.generator.trainable_variables)
         grads_2 = tape.gradient(generator_error, self.discriminators[1].trainable_variables[:-1])
@@ -461,8 +451,6 @@ class FineGAN(object):
                 self.real_fimages, self.real_cimages, self.c_code, self.bbox = batch
                 
                 if self.c_code.shape[0] != self.batch_size:
-                    # print(f'Received batch_size of {self.c_code.shape}')
-                    # print(f'Stopped at Batch: {count}')
                     continue
                                         
                 ratio = 10
@@ -485,10 +473,8 @@ class FineGAN(object):
                     if index==0 or index==2:
                         discriminator_error = self.train_discriminator(index)
                         total_discriminator_error += discriminator_error
-                # print(f'Discriminator Error: {total_discriminator_error}')
                 
                 total_generator_error = self.train_generator()
-                # print(f'Generator Error: {total_generator_error}')
                 
                 if count%50 == 0:
                     print(f'Epoch {epoch+1} Batch: {count+1}')
@@ -505,7 +491,6 @@ class FineGAN(object):
         self.discriminators[1].save_weights('./Checkpoints/discriminator_1_300_epochs.ckpt')
         self.discriminators[2].save_weights('./Checkpoints/discriminator_2_300_epochs.ckpt')
         return
-
 
 if __name__ == '__main__':
     cfg = Config(32)

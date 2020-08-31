@@ -289,7 +289,6 @@ class GeneratorArchitecture(tf.keras.Model):
         self.mask_gen2 = GetMask() # Parent Mask
 
         # Child Stage
-        # TODO: Include the ResidualGen before IntermediateGen
         self.child_gen = IntermediateGenerator(cfg, self.gen_dims // 2, 0)
         self.image_child = GetImage() # Child Foreground
         self.mask_child = GetMask() # Child Mask
@@ -408,4 +407,3 @@ class DiscriminatorArchitecture(tf.keras.Model):
             p_c = self.logits_pc(x) # Information maximising code (D_pinfo or D_cinfo)
             real_fake_child = self.logits_pc1(x) # Real/Fake classification - child (D_adv)
             return [Reshape([self.encoder_dims])(p_c), Reshape([-1])(real_fake_child)]
-            
