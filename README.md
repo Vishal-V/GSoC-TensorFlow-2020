@@ -14,7 +14,9 @@ State-of-the-art Deep Learning models for the TensorFlow Model Garden implemente
 |[FineGAN](https://arxiv.org/abs/1811.11155)|CVPR ‘19 |[SoTA](https://github.com/kkanshul/finegan/) for CUB 128x128, CUB, Stanford Cars [Image Generation]|
 |[DETR](https://arxiv.org/abs/2005.12872v3)|NeurIPS ‘20 |[SoTA](https://github.com/facebookresearch/detr/) for COCO Panoptic [Panoptic Segmentation]|
 |[Expressivity of Batchnorm](https://arxiv.org/abs/2003.00152)|NeurIPS '20 |[Official Implementation](https://github.com/facebookresearch/open_lth) for CIFAR10 and ImageNet|
-|[MUNIT](https://arxiv.org/abs/1804.04732)|ECCV '18 |[SoTA](https://github.com/nvlabs/MUNIT) for Cityscapes, Edge-to-Handbags [Image Translation]|
+|[SIREN](https://arxiv.org/abs/2006.09661v1)|CVPR '20 |[SoTA](https://github.com/nvlabs/MUNIT) for Cityscapes, Edge-to-Handbags [Image Translation]|
+
+<!-- |[MUNIT](https://arxiv.org/abs/1804.04732)|ECCV '18 |[SoTA](https://github.com/nvlabs/MUNIT) for Cityscapes, Edge-to-Handbags [Image Translation]| -->
 #
 ## **Progress**
 |Evaluation|Task|Link|Status|Pull Request|
@@ -22,45 +24,84 @@ State-of-the-art Deep Learning models for the TensorFlow Model Garden implemente
 |E1| FineGAN Model |[Here](https://github.com/Vishal-V/tf-models/tree/master/finegan)| Complete |[ #8750](https://github.com/tensorflow/models/pull/8750)|
 |E2| FineGAN Training Pipeline |[Here](https://github.com/Vishal-V/tf-models/tree/master/finegan)| Complete |[ #8750](https://github.com/tensorflow/models/pull/8750)|
 |E3| FineGAN Benchmark |[Here](https://github.com/Vishal-V/tf-models/tree/master/finegan)| Partial |[ #8750](https://github.com/tensorflow/models/pull/8750)|
-|E3| Expressivity of BN - Code|[Here](https://github.com/Vishal-V/tf-models/)|Complete| [ ]()|
-|E3| Expressivity of BN - Notebook |[Here](https://github.com/Vishal-V/tf-models/)|Complete| [ ]()|
-|E3| FineGAN - Notebook |[Here](https://github.com/Vishal-V/tf-models/tree/master/finegan)| Partial |[ #8750](https://github.com/tensorflow/models/pull/8750)|
-|E3| Detection Transformer |[Here](https://github.com/Vishal-V/tf-models/)|WIP| [ ]()|
-|E3| MUNIT |[Here](https://github.com/Vishal-V/tf-models/)|WIP| [ ]()|
+|E3| FineGAN - Notebook |[Here](https://github.com/Vishal-V/tf-models/blob/master/finegan/notebooks/efficient%20trials.ipynb)| Partial |[ #8750](https://github.com/tensorflow/models/pull/8750)|
+|E3| Expressivity of BN - Code|[Here](https://github.com/Vishal-V/tf-models/onlyBN/)|Complete| [ ]()|
+|E3| Expressivity of BN - Notebook |[Here](https://github.com/Vishal-V/tf-models/onlyBN/notebooks)|Complete| [ ]()|
+|E3| SIREN - Notebook|[Here](https://github.com/Vishal-V/tf-models/siren/notebook/)|Partial| [ ]()|
+|E3| Detection Transformer |[Here](https://github.com/Vishal-V/tf-models/detr/)|In Progress| [ ]()|
+
+<!-- |E3| MUNIT |[Here](https://github.com/Vishal-V/tf-models/munit/)|In Progress| [ ]()| -->
+
 #
 #
 ## **Work Done**
 ### FineGAN
-Implemented the 3-Stage FineGAN Architecture with a stage each for Background, Foreground Outline and Foreground Mask generation. This includes the PatchGAN Background scene detector to detect background only patches for the auxiliary discriminator in the Background stage. I also fixed several errors and added workarounds for assigning values to eager tensors and assigning zero weight to the tensors with cropped real bounding boxes. To improve the data loading performance, I added the `tf.data` pipelines training and evaluation paired images with the data augmentation and the modified masked bounding boxes. Model training provides results but is yet to be benchmarked [WIP].
+Implemented the 3-Stage FineGAN Architecture with a stage each for Background, Foreground Outline and Foreground Mask generation. This includes the PatchGAN Background scene detector to detect background only patches for the auxiliary discriminator in the Background stage. I also fixed several errors and added workarounds for assigning values to eager tensors and assigning zero weight to the tensors with cropped real bounding boxes. To improve the data loading performance, I added the `tf.data` pipelines training and evaluation paired images with the data augmentation and the modified masked bounding boxes. Model created from the [paper](https://arxiv.org/abs/1811.11155) and compared with the author's code release to train on the CUB 200 dataset for birds. Model training provides results but is yet to be benchmarked [In Progress].
   
 - **Model**: https://github.com/Vishal-V/tf-models/tree/master/finegan  
-- **Notebook**: [GitHub Link](https://github.com/Vishal-V/tf-models/blob/master/finegan/efficient%20trials.ipynb)
+- **Notebook**: [GitHub Link](https://github.com/Vishal-V/tf-models/blob/master/finegan/notebooks/efficient%20trials.ipynb)
   
-### Only batchNorm
+### Only BatchNorm
+The expressive power of BatchNormalization is an under investigated topic. This [paper](https://arxiv.org/abs/2003.00152) from FAIR goes on to investigate the expressivity that comes from the 'beta' and 'gamma' parameters of BatchNormalization with extensive ablation studies and experiments. The particular position of 'gamma' and 'beta' as per-feature coefficient and bias. Batchnorm makes the optimization landscape smoother and also decouples the optimization of the weight magnitude and the direction of gradients. Like a gift that keeps on giving, BatchNorm also performs a novel regularization and explicitly casues the gradients to reach equilibrium. This model and the associated notebook revolves around reproducing the results from the paper. 
   
-Most scholars who complete the Stanford CS231N course attempt the final assignment to train a model on the TinyImageNet dataset without transfer learning. But, those scholars with resource constraints or only Google colab to fall back on find it difficult to train a decent model . This is a custom ResNet with 10x lesser parameters for image classification on the TinyImageNet dataset. The training strategy and data loading features are made efficient to enable training on Google colab. The model training uses `progressive resizing` of image sizes to enable the model to learn scale independent semantic features. The data is loaded using the `ImageDataGenerator` class.
-- **Model**: https://github.com/Vishal-V/GSoC/tree/master/tiny_imagenet_custom_resnet/model
-- **Instructions**: https://github.com/Vishal-V/GSoC/tree/master/tiny_imagenet_custom_resnet
-- **Notebook**: [GitHub Link](https://github.com/Vishal-V/GSoC/blob/master/tiny_imagenet_custom_resnet/tiny_imagenet_custom_resnet.ipynb), [Colab Link](https://colab.research.google.com/drive/1SZLecFzKuU7TVCoCzTq285sEbjlT12A6)
+Two points to consider: The TensorFlow image translate function from TF Addons and did not perform as well as the paper authors have claimed. The same holds for the weight_decay that I used as SGDW and also as l2 kernel regularizer but in both cases, the training diverged. 
+- **Model**: https://github.com/Vishal-V/tf-models/onlyBN/
+- **Instructions**: https://github.com/Vishal-V/tf-models/onlyBN/README.md
+- **Notebook**: [GitHub Link](https://github.com/Vishal-V/tf-models/onlyBN/notebooks/)
+  
+### Only BatchNorm ResNet 
+Running the OnlyBN ResNet model experiments (without frozen training) with the TinyImageNet dataset with progressive resizing and DepthwiseSeparableConv2D for efficient training. The model can also be used with all the layers except the BatchNorm layers set to be trainable. The author's benchmark of 32% for ImageNet with ResNet-200 may not be of much use to reproduce the results of, hence this notebook discusses alternative techniques including Cyclic Learning Rate.
+- **Model**: https://github.com/Vishal-V/tf-models/onlyBN/Notebooks/efficient_tiny.ipynb
+- **Instructions**: https://github.com/Vishal-V/tf-models/onlyBN/README.md
+- **Notebook**: [GitHub Link](https://github.com/Vishal-V/tf-models/onlyBN/Notebooks/efficient_tiny.ipynb), [Colab Link](https://colab.research.google.com/drive/1SZLecFzKuU7TVCoCzTq285sEbjlT12A6)
+    
+### SIREN
+Implicit Neural Representations with Periodic Activation Functions or SIREN is an exciting new paper from CVPR 2020 that can be used for a phenomenal array of applications including image inpainting, fitting an image, fitting an audio signal and even solving Poisson's equation! This notebook is a minimal demo of the model for fitting an image. The benchmarks for the same is in progress.
+- **Notebook**: [GitHub Link](https://github.com/Vishal-V/GSoC/blob/master/keras_tuner/hyperparamter_search.ipynb), [Colab Link](https://colab.research.google.com/drive/15Mqrbtv5u39P9UOwIFjJWkpW6YsS7nA8)
   
 ### Detection Transformer (DETR)
-Model created from the paper [[Arxiv Link](https://arxiv.org/pdf/1612.03242.pdf)] to train on the CUB 200 dataset for birds. There are 2 stages in the model. Stage 1 takes the latent space and a conditioning vector as input to generate 64x64 resolution images. The model uses pre-trained Char-RNN-CNN embeddings. Stage 2 generates 256x256 resolution images based off of the generated images from Stage 1 of the StackGAN.
-- **Model**: https://github.com/Vishal-V/GSoC/tree/master/stack_gan
-- **Instructions**: https://github.com/Vishal-V/GSoC/blob/master/stack_gan/README.md
+End-to-end object detector with Transformer is a set based detector that uses the transformer architecture on top of a convolution backbone to perform tasks such as object detection and panoptic segmentation. The model takes in positional encodings for the transformer encoder. The set global loss that forces unique predictions for via bipartite matching and the encoder-decoder architecture does away with handcoded features and non-max suppression.
+- **Model**: https://github.com/Vishal-V/tf-models/detr/
   
-### Age-cGAN
-From the hype of FaceApp, the fully trained Age-cGAN model can be used to build your very own version. Although the model is currently training and the weights are yet to be uploaded, the script can be used to train an age conditional GAN on the Wiki cropped faces dataset. The training occurs in 3 phases: GAN training, latent vector approximation and latent vector optimization.
-- **Model**: https://github.com/Vishal-V/GSoC/tree/master/face_app
-- **Instructions**: https://github.com/Vishal-V/GSoC/tree/master/face_app/README.md
-### Hyperparameter Tuning
-This notebook was initially supposed to be a logo classifier akin to the Google I/O 19 demo, but the dataset was never made public. Hence, this is a Keras-Tuner notebook that shows 'hypertuning for humans' based on a comparison between a regular model and one marked for hyper-parameter tuning.
-- **Notebook**: [GitHub Link](https://github.com/Vishal-V/GSoC/blob/master/keras_tuner/hyperparamter_search.ipynb), [Colab Link](https://colab.research.google.com/drive/15Mqrbtv5u39P9UOwIFjJWkpW6YsS7nA8)
-### Mask R-CNN [WIP]
-This model was supposed to be a migration of the most authoritative Mask R-CNN implementation available. Although the basic migartion was done, the very model uses a lot of graph functions that are still being fixed by me. I have translated a lot of the functions but hit quite a few roadblocks with NaNs. I plan on rebuilding the entire model from scratch being TF 2.0 native. This is the only task left to be completed.
-- **Model**: https://github.com/Vishal-V/GSoC/tree/master/mask_rcnn
-- **Migration Guide**: https://github.com/Vishal-V/GSoC/blob/master/mask_rcnn/README.md
+<!-- ### MUNIT (Multimodal Image-to-Image Translation)
+MUNIT is one of the classic Image-to-Image translation models that is able to learn a multimodal distribution and model translations from various domains. MUNIT does this by decomposing the image style and content into their domains and then recombining them in diverse ways. The implementation although SoTA for Edge-to-Handbags, this implementation is more concerned towards the Cityscapes dataset for various weather domain translation. [In Progress]
+- **Model**:  https://github.com/Vishal-V/tf-models/munit/
+- **Instructions**: https://github.com/Vishal-V/tf-models/munit/README.md -->
+  
+#    
+## **Progress**
+<!-- All pull requests can be found here [PRs Link](https://github.com/tensorflow/examples/pulls/Vishal-V) -->
+### **Phase 1**  
+Implemented the 3-Stage FineGAN Architecture. This included the background generator, background auxiliary discriminator, background discriminator, parent generator, parent mask generator branch, parent information maximization discriminator, child stage generator, child mask generator branch and the child stage discriminators. I also got to interact with the paper authors. They were happy that their work was getting recognized in the community!
 
-## **Deliverables**
+I used TensorFlow best practices for the implementation and ensured each part worked individually. The end-to-end training loop was next to come and this formed the deliverables for my first evaluation. After the evaluation, I also discussed the next models to work on with my mentor. I decided to work on DETR (Detection Transformer) along with the implementation of Transformer as completed by an intern.
+ 
+### **Phase 2**  
+I worked on integrating the individual FineGAN components into an effiicent training loop and met with several errors that TensorFlow did not support. I fixed several errors and added workarounds for assigning values to eager tensors and assigning zero weight to the tensors with cropped real bounding boxes. This led to a few efficiency problems as the graph mode training speedup could not be used while working with eager tensors. To improve the data loading performance, I added the tf.data pipelines training and evaluation paired images with the data augmentation and the modified masked bounding boxes. I was finally able to get the model working and the gradients passing correctly, but was unable to reproduce the author's results. So, FineGAN was a partial implementation at this stage and for this evaluation.
+  
+One amazing experience was the SpineNet tutorial and the implementation best-practices discussed by the TensorFlow team in a meeting along with the SpineNet paper authors from Google Brain. This was a very rare and interesting experience and got a whole lot out of attending it! I read the SpineNet paper and the DETR paper towards potentially starting to work on it and get a few components completed in time for the final evaluation and then continue working on it later.
+  
+### **Phase 3**  
+Even with several changes and improvements added to the FineGAN model, the model didn't converge. So, I started comparing the model architecture as closely as possible to the author's codebase. I even performed model diagnosis to see if there are some spurious gradients being passed, but that was not the case. After training for several runs of 300 epochs (full training is for 600 epochs + hard negative mining) for the FineGAN model, I realized that either the model architecture is still missing some components or the workarounds I added to the code that PyTorch automatically allows might have made some difference. With the risk of having nothing to show for for the final evaluation, I started binge reading several of the newest papers in the internal paper list and from the latest conferences (CVPR 2020 and ECCV 2020) that I could even use for my full-time research work.
+  
+I got a fantastic learning experience from reading all those papers! My mentor Jaeyoun was very supportive during this phase and gave me the confidence to continue working on other models and get back to FineGAN later. I decided to work on Facebook's Only BN and Stanford's SIREN along with some components for DETR as a partial implementation. While the implementation for OnlyBN was smooth sailing, I had another blocker in the TensorFlow impelmentation of SGD with weight decay and the image translate augmentation function. Surprisingly, the ResNet-218, ResNet-434 and ResNet-866 diverged during the training scheme which forced me to tru other workarounds that still reached good enough performance and upheld the very essence of the investigations in the paper.
+  
+Although this is the last phase for GSoC 2020 and my last time as a GSoC student developer (I participated last year with the TensorFlow team!), I will continue working on impactful and interesting models for the TF team and the research community and benchmark SoTA models!
+#
+## **What's next?**
+- FineGAN diagnosis and discussions with the authors to benchmark the model.
+- Work on the DETR model architecture and complete the implementation for the new TF Model Garden repository with custom built-in components. Since the DETR benchmark is for Panoptic Segmentation, this work will also integrate well with the Panoptic FPN implemenattion that my GSoC colleague [@syiming](https://github.com/syiming) is working on for the TF Object Detection API.
+- Work on other relevant models such as the DRIT++ and the MUNIT models for multimodal image-to-image translation and benchmark it for larger datastes.
+  
+## **Challenges**
+- The most challenging task was coming up with improvements and workarounds to get the FineGAN model working and efficiently at that. I spent a lot of time on this and even translated the autodiff code that used graph functions. The benchmark reproducibility was not fully completed and a possible deeper diagnosis with help from the authors might help.
+  
+## **Learnings**
+- I learnt a whole lot of best practices in these 3 months along with building for scale and writing maintainable code. I got an in-depth look into TensorFlow as a framework and all the amazing code written that makes this the most popular AI framework.
+- I also got to attend one of the Google Brain tutorial meetings and got to know more about the vision for the TF Object Detection API and the new Computer Vision components being added to the TF Model Garden. 
+- Not to forget the amazing mentorship from Jayeoun Kim who helped me out when I needed it the most. I also got a taste of just how much effort goes into benchmarking and creating official deep learning model implementations and learnt an important lesson in model reproducibility that even seasoned researchers may face from time-to-time! 
+#
+<!-- ## **Deliverables**
 - [**Autoencoder**](https://github.com/Vishal-V/GSoC/tree/master/autoencoder/model) - [tensorflow/examples #68](https://github.com/tensorflow/examples/pull/68)
 -  [**Autoencoder - Notebook**](https://github.com/Vishal-V/GSoC/tree/master/autoencoder/model) - [tensorflow/examples #68](https://github.com/tensorflow/examples/pull/68)
 - [**StackGAN**](https://github.com/Vishal-V/GSoC/tree/master/stack_gan) -  [tensorflow/examples #77](https://github.com/tensorflow/examples/pull/77)
@@ -69,18 +110,4 @@ This model was supposed to be a migration of the most authoritative Mask R-CNN i
 - [**Mask R-CNN Notebook**](https://github.com/Vishal-V/GSoC/tree/master/mask_rcnn/notebooks) -  [tensorflow/examples #78](https://github.com/tensorflow/examples/pull/78)
 - [**Hyperparameter Search**](https://github.com/Vishal-V/GSoC/blob/master/keras_tuner/hyperparamter_search.ipynb) -  [tensorflow/examples #84](https://github.com/tensorflow/examples/pull/84)
 - [**Custom ResNet for TinyImageNet**](https://github.com/Vishal-V/GSoC/tree/master/tiny_imagenet_custom_resnet/model) -  [tensorflow/examples #79](https://github.com/tensorflow/examples/pull/79)
-- [**Custom ResNet for TinyImageNet Notebook**](https://github.com/Vishal-V/GSoC/blob/master/tiny_imagenet_custom_resnet/tiny_imagenet_custom_resnet.ipynb) -  [tensorflow/examples #79](https://github.com/tensorflow/examples/pull/79)
-## **Progress**
-All pull requests can be found here [PRs Link](https://github.com/tensorflow/examples/pulls/Vishal-V)
-- **Phase 1**: Completed the autoencoder migration and the corresponding notebook with both eager mode and graph mode training. Worked on the Boosted Trees Estimator and found a few bugs that caused the model to not learn at all. I then worked on the Keras-Tuner logo classifier based off of the Google I/O demo and also completed the R&D for the Custom ResNet model.
-- **Phase 2**: Completed the R&D and created the entire StackGAN model for the CUB 200 birds dataset. Trained the model for 250 epochs on my GPU with decent results. Completed the basic Mask R-CNN migration and was left with some bugs and architectural changes necessary to be TF 2.0 compatible. I also completed training and testing 10-12 ResNet models across 5 colab accounts to get the most efficient strategy. 
-- **Phase 3**: Completed the R&D and created the Age Conditional GAN for the Wiki cropped faces dataset. The plan was to train it on GCP and upload the weights for developers to make their own FaceApp, but due to the lack of cloud credits, this was put away for the time being. The final custom resnet model was chosen from among the multiple models built and the corresponding notebook was completed. The final autoencoder notebook was also completed. All models and their respecive bugs were fixed and the corresponding documentation was updated.
-## **What's left?**
-- Mask R-CNN fixes and possible rebuild from scratch to be TF 2.0 native.
-- Age-cGAN Trained Weights for developers to build their own version of FaceApp.
-- The Age-cGAN preprocesses all 62k images and stores it in a list just once to use it for every epoch without having to preprocess all the images over and over again. This has a significany overhead first up but eases it for the rest of the training. This may have a better solution.
-## **Challenges**
-- The most challenging task was the Mask R-CNN migration. I spent a lot of time on this and even translated the autodiff code that used graph functions. The migration was not fully completed and a possible rebuild from scratch might be a better alternative.
-## **Learnings**
-- I learnt a whole lot of best practices in these 3 months along with building for scale and writing maintainable code. I got an in-depth look into tensorflow as a framework and all the amazing code written that makes this the most popular AI framework. 
-- Not to forget the amazing mentors I had who helped me along the way and solved all my doubts at the earliest. I also got a taste of just how much effort goes into benchmarking and creating official deep learning model implementations.
+- [**Custom ResNet for TinyImageNet Notebook**](https://github.com/Vishal-V/GSoC/blob/master/tiny_imagenet_custom_resnet/tiny_imagenet_custom_resnet.ipynb) -  [tensorflow/examples #79](https://github.com/tensorflow/examples/pull/79) -->
