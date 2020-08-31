@@ -439,8 +439,8 @@ class FineGAN(object):
         data = data.map(lambda fimgs, cimgs, child_code, mod_bbox: casting_func(fimgs, cimgs, child_code, mod_bbox), num_parallel_calls=AUTOTUNE)
         data = data.shuffle(1000).prefetch(2)
                     
-        start_epoch = 225
-        self.num_epochs = 300
+        start_epoch = 0
+        self.num_epochs = 100
                 
         for epoch in range(start_epoch, self.num_epochs):
                 
@@ -508,7 +508,7 @@ if __name__ == '__main__':
 
     print(f'[INFO] FineGAN Training starts...')
     start_t = time.time()
-    algo.train_model(start=False)
+    algo.train_model(start=True)
     end_t = time.time()
     print(f'Total time for training: {end_t - start_t}s')
     print(f'[INFO] FineGAN Training Complete...')

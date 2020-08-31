@@ -21,10 +21,10 @@ State-of-the-art Deep Learning models for the TensorFlow Model Garden implemente
 ## **Progress**
 |Evaluation|Task|Link|Status|Pull Request|
 |---|---|---|---|---|
-|E1| FineGAN Model |[Here](https://github.com/Vishal-V/tf-models/tree/master/finegan)| Complete |[ #8750](https://github.com/tensorflow/models/pull/8750)|
-|E2| FineGAN Training Pipeline |[Here](https://github.com/Vishal-V/tf-models/tree/master/finegan)| Complete |[ #8750](https://github.com/tensorflow/models/pull/8750)|
-|E3| FineGAN Benchmark |[Here](https://github.com/Vishal-V/tf-models/tree/master/finegan)| Partial |[ #8750](https://github.com/tensorflow/models/pull/8750)|
-|E3| FineGAN - Notebook |[Here](https://github.com/Vishal-V/tf-models/blob/master/finegan/notebooks/efficient%20trials.ipynb)| Partial |[ #8750](https://github.com/tensorflow/models/pull/8750)|
+|E1| FineGAN Model |[Here](https://github.com/Vishal-V/tf-models/tree/master/finegan)| Complete |[ #9173](https://github.com/tensorflow/models/pull/9173), [ #8750](https://github.com/tensorflow/models/pull/8750)|
+|E2| FineGAN Training Pipeline |[Here](https://github.com/Vishal-V/tf-models/tree/master/finegan)| Complete |[ #9173](https://github.com/tensorflow/models/pull/9173), [ #8750](https://github.com/tensorflow/models/pull/8750)|
+|E3| FineGAN Benchmark |[Here](https://github.com/Vishal-V/tf-models/tree/master/finegan)| Partial |[ #9173](https://github.com/tensorflow/models/pull/9173)|
+|E3| FineGAN - Notebook |[Here](https://github.com/Vishal-V/tf-models/blob/master/finegan/notebooks/efficient%20trials.ipynb)| Partial |[ #9173](https://github.com/tensorflow/models/pull/9173)|
 |E3| Expressivity of BN - Code|[Here](https://github.com/Vishal-V/tf-models/onlyBN/)|Complete| [ ]()|
 |E3| Expressivity of BN - Notebook |[Here](https://github.com/Vishal-V/tf-models/onlyBN/notebooks)|Complete| [ ]()|
 |E3| SIREN - Notebook|[Here](https://github.com/Vishal-V/tf-models/siren/notebook/)|Partial| [ ]()|
@@ -45,9 +45,9 @@ Implemented the 3-Stage FineGAN Architecture with a stage each for Background, F
 The expressive power of BatchNormalization is an under investigated topic. This [paper](https://arxiv.org/abs/2003.00152) from FAIR goes on to investigate the expressivity that comes from the 'beta' and 'gamma' parameters of BatchNormalization with extensive ablation studies and experiments. The particular position of 'gamma' and 'beta' as per-feature coefficient and bias. Batchnorm makes the optimization landscape smoother and also decouples the optimization of the weight magnitude and the direction of gradients. Like a gift that keeps on giving, BatchNorm also performs a novel regularization and explicitly casues the gradients to reach equilibrium. This model and the associated notebook revolves around reproducing the results from the paper. 
   
 Two points to consider: The TensorFlow image translate function from TF Addons and did not perform as well as the paper authors have claimed. The same holds for the weight_decay that I used as SGDW and also as l2 kernel regularizer but in both cases, the training diverged. 
-- **Model**: https://github.com/Vishal-V/tf-models/onlyBN/
-- **Instructions**: https://github.com/Vishal-V/tf-models/onlyBN/README.md
-- **Notebook**: [GitHub Link](https://github.com/Vishal-V/tf-models/onlyBN/notebooks/)
+- **Model**: https://github.com/Vishal-V/tf-models/tree/master/onlyBN
+- **Instructions**: https://github.com/Vishal-V/tf-models/tree/master/onlyBN/README.md
+- **Notebook**: [GitHub Link](https://github.com/Vishal-V/tf-models/tree/master/onlyBN/notebooks/)
   
 ### OnlyBN ResNet Experiments
 Running the OnlyBN ResNet model experiments (without frozen training) with the TinyImageNet dataset with progressive resizing and DepthwiseSeparableConv2D for efficient training. The model can also be used with all the layers except the BatchNorm layers set to be trainable. The author's benchmark of 32% for ImageNet with ResNet-200 may not be of much use to reproduce the results of, hence this notebook discusses alternative techniques including Cyclic Learning Rate.
@@ -57,7 +57,9 @@ Running the OnlyBN ResNet model experiments (without frozen training) with the T
     
 ### SIREN
 Implicit Neural Representations with Periodic Activation Functions or SIREN is an exciting new paper from CVPR 2020 that can be used for a phenomenal array of applications including image inpainting, fitting an image, fitting an audio signal and even solving Poisson's equation! This notebook is a minimal demo of the model for fitting an image. The benchmarks for the same is in progress.
-- **Notebook**: [GitHub Link](https://github.com/Vishal-V/GSoC/blob/master/keras_tuner/hyperparamter_search.ipynb), [Colab Link](https://colab.research.google.com/drive/15Mqrbtv5u39P9UOwIFjJWkpW6YsS7nA8)
+- **Notebook**: [GitHub Link](https://github.com/Vishal-V/GSoC/blob/master/keras_tuner/hyperparamter_search.ipynb)
+
+<!-- [Colab Link](https://colab.research.google.com/drive/15Mqrbtv5u39P9UOwIFjJWkpW6YsS7nA8) -->
   
 ### Detection Transformer (DETR)
 End-to-end object detector with Transformer is a set based detector that uses the transformer architecture on top of a convolution backbone to perform tasks such as object detection and panoptic segmentation. The model takes in positional encodings for the transformer encoder. The set global loss that forces unique predictions for via bipartite matching and the encoder-decoder architecture does away with handcoded features and non-max suppression.
@@ -90,7 +92,7 @@ Although this is the last phase for GSoC 2020 and my last time as a GSoC student
 #
 ## **What's next?**
 - FineGAN diagnosis and discussions with the authors to benchmark the model.
-- Work on the DETR model architecture and complete the implementation for the new TF Model Garden repository with custom built-in components. Since the DETR benchmark is for Panoptic Segmentation, this work will also integrate well with the Panoptic FPN implemenattion that my GSoC colleague [@syiming](https://github.com/syiming) is working on for the TF Object Detection API.
+- Work on the DETR model architecture and complete the implementation for the new TF Model Garden repository with custom built-in components. Since the DETR benchmark is for Panoptic Segmentation, this work will also integrate well with the Panoptic FPN implementation that my GSoC colleague [@syiming](https://github.com/syiming) is working on for the TF Object Detection API.
 - Work on other relevant models such as the DRIT++ and the MUNIT models for multimodal image-to-image translation and benchmark it for larger datastes.
   
 ## **Challenges**
